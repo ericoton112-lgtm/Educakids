@@ -1,11 +1,74 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'motion/react';
-import { BookMarked, Mail, Lock, LogIn, Chrome, ShieldCheck, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { BookMarked, Mail, Lock, LogIn, Chrome, ShieldCheck, RefreshCw, Loader2, UserPlus, User, GraduationCap, Building } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [teachingSegment, setTeachingSegment] = useState('');
+  const [schoolName, setSchoolName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        
+        router.push('/');
+        router.refresh();
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: fullName || 'Professora Maria',
+              classes: teachingSegment || 'Berçário A',
+              school: schoolName || 'Colégio Saber',
+            }
+          }
+        });
+        if (error) throw error;
+        
+        alert('Cadastro realizado com sucesso! Você já pode entrar.');
+        setIsLogin(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro durante a autenticação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-5 relative overflow-hidden">
       <div className="fixed top-20 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 translate-x-1/2"></div>
@@ -25,11 +88,67 @@ export default function LoginPage() {
           className="bg-surface-container-lowest p-8 rounded-[2.5rem] border border-outline-variant/30 shadow-2xl space-y-8"
         >
           <div className="text-center space-y-2">
-            <h2 className="font-sans font-black text-2xl text-on-surface">Bem-vindo de volta!</h2>
-            <p className="text-sm text-on-surface-variant">Entre para gerenciar sua sala de aula</p>
+            <h2 className="font-sans font-black text-2xl text-on-surface">
+              {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta!'}
+            </h2>
+            <p className="text-sm text-on-surface-variant">
+              {isLogin ? 'Entre para gerenciar sua sala de aula' : 'Junte-se à plataforma educacional'}
+            </p>
           </div>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleAuth}>
+            {!isLogin && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-4" htmlFor="fullName">Nome Completo</label>
+                  <div className="relative group">
+                    <User size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" />
+                    <input 
+                      type="text"
+                      id="fullName"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Professora Maria"
+                      className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-4" htmlFor="teachingSegment">Segmento / Turma</label>
+                  <div className="relative group">
+                    <GraduationCap size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" />
+                    <input 
+                      type="text"
+                      id="teachingSegment"
+                      required
+                      value={teachingSegment}
+                      onChange={(e) => setTeachingSegment(e.target.value)}
+                      placeholder="Berçário A"
+                      className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-4" htmlFor="schoolName">Nome da Escola</label>
+                  <div className="relative group">
+                    <Building size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" />
+                    <input 
+                      type="text"
+                      id="schoolName"
+                      required
+                      value={schoolName}
+                      onChange={(e) => setSchoolName(e.target.value)}
+                      placeholder="Colégio Saber"
+                      className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
               <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-4" htmlFor="email">Endereço de E-mail</label>
               <div className="relative group">
@@ -37,8 +156,11 @@ export default function LoginPage() {
                 <input 
                   type="email"
                   id="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="profa.maria@eduspark.com"
-                  className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all"
+                  className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
                 />
               </div>
             </div>
@@ -46,50 +168,67 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-4">
                 <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest" htmlFor="password">Senha</label>
-                <button type="button" className="text-[10px] font-black text-primary hover:opacity-80 transition-opacity">ESQUECEU A SENHA?</button>
+                {isLogin && (
+                  <button type="button" className="text-[10px] font-black text-primary hover:opacity-80 transition-opacity">ESQUECEU A SENHA?</button>
+                )}
               </div>
               <div className="relative group">
                 <Lock size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" />
                 <input 
                   type="password"
                   id="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all"
+                  className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
                 />
               </div>
             </div>
 
-            <Link href="/" className="block">
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full bg-primary text-on-primary py-4 rounded-full font-sans font-black shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
-              >
-                <LogIn size={20} />
-                Entrar
-              </motion.button>
-            </Link>
+            <AnimatePresence>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-error-container text-on-error-container text-xs font-bold p-3 rounded-xl text-center"
+                >
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.button 
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-primary text-on-primary py-4 rounded-full font-sans font-black shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {loading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : isLogin ? (
+                <><LogIn size={20} /> Entrar</>
+              ) : (
+                <><UserPlus size={20} /> Cadastrar</>
+              )}
+            </motion.button>
           </form>
 
-          <div className="relative flex items-center gap-4">
-            <div className="flex-grow border-t border-outline-variant/30"></div>
-            <span className="text-[9px] font-black text-outline uppercase tracking-widest">OU CONTINUE COM</span>
-            <div className="flex-grow border-t border-outline-variant/30"></div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <button className="w-full flex items-center justify-center gap-3 py-4 border-2 border-outline-variant/20 rounded-full text-xs font-black uppercase text-on-surface hover:bg-surface-container-low transition-colors active:scale-98">
-              Sincronizar com Supabase
-            </button>
-            <button className="w-full flex items-center justify-center gap-3 py-4 border-2 border-outline-variant/20 rounded-full text-xs font-black uppercase text-on-surface hover:bg-surface-container-low transition-colors active:scale-98">
-              <Chrome size={20} className="text-[#EA4335]" />
-              Entrar com Google
-            </button>
-          </div>
 
           <p className="text-center text-xs text-on-surface-variant">
-            Não tem uma conta? 
-            <button className="text-primary font-black ml-1 hover:underline underline-offset-4 uppercase text-[10px]">Cadastre-se</button>
+            {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'} 
+            <button 
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+              }}
+              className="text-primary font-black ml-1 hover:underline underline-offset-4 uppercase text-[10px]"
+            >
+              {isLogin ? 'Cadastre-se' : 'Entrar'}
+            </button>
           </p>
         </motion.div>
 

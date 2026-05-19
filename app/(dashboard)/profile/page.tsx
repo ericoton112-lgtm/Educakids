@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { User, Mail, Bell, Shield, Moon, LogOut, ChevronRight, GraduationCap, Building, Edit2, Save, Camera, X } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -15,6 +16,51 @@ export default function ProfilePage() {
     avatar: 'https://picsum.photos/seed/teacher/400'
   });
 
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Tentar buscar da tabela pública "profiles"
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          setProfile({
+            name: data.name || 'Professora Maria',
+            email: data.email || user.email || 'profa.maria@eduspark.com',
+            classes: data.classes || 'Berçário A',
+            school: data.school || 'Colégio Saber',
+            avatar: data.avatar || 'https://picsum.photos/seed/teacher/400'
+          });
+        } else {
+          // Fallback seguro caso a tabela profiles ainda não tenha o registro
+          setProfile(prev => ({
+            ...prev,
+            email: user.email || prev.email,
+            name: user.user_metadata?.name || prev.name,
+            classes: user.user_metadata?.classes || prev.classes,
+            school: user.user_metadata?.school || prev.school,
+          }));
+        }
+      } catch (err) {
+        console.error('Erro ao carregar perfil público:', err);
+      }
+    };
+    loadProfile();
+  }, [supabase]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,9 +70,27 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsEditing(false);
-    // Aqui seria feita a chamada para a API (ex: Supabase) para salvar os dados reais.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Atualizar tabela pública "profiles"
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            name: profile.name,
+            email: user.email,
+            classes: profile.classes,
+            school: profile.school,
+            avatar: profile.avatar,
+            updated_at: new Date().toISOString()
+          });
+      }
+    } catch (err) {
+      console.error('Erro ao salvar perfil no Supabase:', err);
+    }
   };
 
   const profileSettings = [
@@ -122,7 +186,7 @@ export default function ProfilePage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
               <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-sans font-black text-3xl text-on-surface">{profile.name}</h2>
+                  <h2 className="font-sans font-black text-3xl text-on-surface">Olá, Prof(a). {profile.name}</h2>
                   <p className="text-on-surface-variant font-medium text-sm flex items-center justify-center md:justify-start gap-2">
                     <Mail size={14} />
                     {profile.email}
@@ -185,16 +249,19 @@ export default function ProfilePage() {
       </section>
 
       <section className="pt-4">
-        <Link href="/login" className="block w-full">
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-error-container text-on-error-container font-bold py-4 rounded-full flex items-center justify-center gap-2 border border-error/20 hover:bg-error hover:text-on-error transition-colors shadow-sm"
-          >
-            <LogOut size={20} />
-            Sair da Conta
-          </motion.button>
-        </Link>
+        <motion.button 
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.push('/login');
+            router.refresh();
+          }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-error-container text-on-error-container font-bold py-4 rounded-full flex items-center justify-center gap-2 border border-error/20 hover:bg-error hover:text-on-error transition-colors shadow-sm"
+        >
+          <LogOut size={20} />
+          Sair da Conta
+        </motion.button>
       </section>
     </div>
   );

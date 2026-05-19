@@ -1,11 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Cake, Plus, ChevronRight, Sun, X, Play, Check } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function HomePage() {
+  const supabase = createClient();
+  const [teacherName, setTeacherName] = useState('Professora');
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Tentar carregar da tabela pública
+        const { data } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+
+        if (data && data.name) {
+          setTeacherName(data.name);
+        } else if (user.user_metadata?.name) {
+          setTeacherName(user.user_metadata.name);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar nome:', err);
+      }
+    };
+    loadProfile();
+  }, [supabase]);
+
   const [items, setItems] = useState([
     {
       id: 1,
@@ -68,7 +97,8 @@ export default function HomePage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-10">
       <section>
-        <h2 className="font-sans font-bold text-3xl text-on-surface">Olá, Sra. Miller</h2>
+        <h2 className="font-sans font-bold text-3xl text-on-surface">Olá, {teacherName}</h2>
+
         <p className="text-on-surface-variant mt-1 italic">Pronta para mais um dia de brincadeiras estruturadas?</p>
       </section>
 

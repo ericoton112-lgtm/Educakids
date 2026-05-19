@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, ClipboardList, Smile, Meh, Plus, Check, Edit2, Package } from 'lucide-react';
+import { Users, ClipboardList, Smile, Meh, Plus, Check, Edit2, Package, X, AlertCircle } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function ClassroomPage() {
+  const supabase = createClient();
   const [activeTab, setActiveTab] = useState('comportamento');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [dbError, setDbError] = useState(false);
 
   // Convertendo estudantes para estado para podermos alterar os comportamentos
   const [students, setStudents] = useState([
@@ -29,8 +34,75 @@ export default function ClassroomPage() {
     ]}
   ]);
 
-  const toggleBehavior = (id: string, behavior: 'smile' | 'meh') => {
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, behavior } : s));
+  // Load from Supabase on mount
+  useEffect(() => {
+    const loadStudents = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('classroom_students')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const mapped = data.map(s => ({
+            id: s.id,
+            name: s.name,
+            class: s.class_name,
+            behavior: s.behavior,
+            notes: s.notes,
+            tags: s.tags || [],
+            color: s.color
+          }));
+          setStudents(mapped);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar alunos do Supabase. Usando dados locais.', err);
+        setDbError(true);
+      }
+    };
+    loadStudents();
+  }, [supabase]);
+
+  // Background sync helper
+  const syncStudentToDb = async (student: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('classroom_students')
+        .upsert({
+          id: student.id,
+          user_id: user.id,
+          name: student.name,
+          class_name: student.class,
+          behavior: student.behavior,
+          notes: student.notes || '',
+          tags: student.tags || [],
+          color: student.color
+        });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Erro de sincronização em segundo plano:', err);
+      setDbError(true);
+    }
+  };
+
+  const toggleBehavior = async (id: string, behavior: 'smile' | 'meh') => {
+    setStudents(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, behavior } : s);
+      const student = updated.find(s => s.id === id);
+      if (student) {
+        syncStudentToDb(student);
+      }
+      return updated;
+    });
   };
 
   const toggleSupplyItem = (catIndex: number, itemIndex: number) => {
@@ -42,12 +114,56 @@ export default function ClassroomPage() {
     });
   };
 
+  const handleAddItem = async () => {
+    if (!newItemName.trim()) return;
+
+    if (activeTab === 'comportamento') {
+      const names = newItemName.split(' ');
+      const id = names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase() : names[0].substring(0, 2).toUpperCase();
+      
+      const newStudent = {
+        id,
+        name: newItemName,
+        class: 'Berçário A',
+        behavior: 'smile' as const,
+        notes: '',
+        color: 'bg-primary-container',
+        tags: []
+      };
+
+      setStudents(prev => [...prev, newStudent]);
+      await syncStudentToDb(newStudent);
+    } else {
+      setSupplies(prev => {
+        const newSupplies = [...prev];
+        newSupplies[0].items.push({ name: newItemName, val: 'Novo', status: 'ok' });
+        return newSupplies;
+      });
+    }
+
+    setNewItemName('');
+    setIsModalOpen(false);
+  };
+
   const completedCount = supplies.reduce((acc, cat) => acc + cat.items.filter(i => i.status === 'completed').length, 0);
   const totalItems = supplies.reduce((acc, cat) => acc + cat.items.length, 0);
   const budgetPercentage = Math.round((completedCount / totalItems) * 100) || 0;
 
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-700 pb-20">
+      {dbError && (
+        <div className="bg-[#E7F3F1] dark:bg-[#1E2E2A] text-on-surface p-4 rounded-3xl flex items-start gap-3 border border-primary/20">
+          <AlertCircle size={20} className="shrink-0 mt-0.5 text-primary" />
+          <div className="space-y-1">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-primary">Modo Offline (Sem Sincronização)</h4>
+            <p className="text-xs opacity-90 font-medium leading-relaxed">
+              Não encontramos as tabelas no seu Supabase. Os seus dados estão sendo salvos localmente. 
+              Para ativar a sincronização na nuvem do Supabase, execute o arquivo <code className="bg-black/10 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">supabase_setup.sql</code> no SQL Editor do seu Supabase Dashboard!
+            </p>
+          </div>
+        </div>
+      )}
+
       <section>
         <h2 className="font-sans font-bold text-3xl text-on-surface">Visão Geral da Sala</h2>
         <p className="text-on-surface-variant mt-1">Gerencie os registros diários dos alunos e o estoque da sala.</p>
@@ -83,7 +199,6 @@ export default function ClassroomPage() {
               <motion.div 
                 key={s.id}
                 whileHover={{ scale: 1.01 }}
-                // Corrigido bg-white para bg-surface-container-lowest para suportar tema escuro
                 className="bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-3xl shadow-soft flex flex-col gap-4"
               >
                 <div className="flex justify-between items-start">
@@ -119,8 +234,18 @@ export default function ClassroomPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-outline uppercase tracking-widest px-1">NOTAS DIÁRIAS</label>
                   <textarea 
-                    defaultValue={s.notes}
-                    className="w-full bg-surface-container-low border-none rounded-2xl p-4 font-body text-xs text-on-surface focus:ring-2 focus:ring-primary/20 resize-none min-h-[80px]" 
+                    value={s.notes}
+                    onChange={(e) => {
+                      const text = e.target.value;
+                      setStudents(prev => prev.map(stud => stud.id === s.id ? { ...stud, notes: text } : stud));
+                    }}
+                    onBlur={async () => {
+                      const updatedStudent = students.find(stud => stud.id === s.id);
+                      if (updatedStudent) {
+                        await syncStudentToDb(updatedStudent);
+                      }
+                    }}
+                    className="w-full bg-surface-container-low border-none rounded-2xl p-4 font-body text-xs text-on-surface focus:ring-2 focus:ring-primary/20 resize-none min-h-[80px] outline-none" 
                     placeholder="Escreva atualizações de comportamento..."
                   />
                 </div>
@@ -210,12 +335,60 @@ export default function ClassroomPage() {
         <motion.button 
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => alert('Em breve: Adicionar novo aluno ou suprimento!')}
+          onClick={() => setIsModalOpen(true)}
           className="w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center transition-all"
         >
           <Plus size={32} />
         </motion.button>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-surface-container-lowest p-6 rounded-3xl w-full max-w-sm border border-outline-variant/30 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-sans font-bold text-xl text-on-surface">
+                  {activeTab === 'comportamento' ? 'Adicionar Aluno' : 'Adicionar Suprimento'}
+                </h3>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-surface-container hover:bg-error hover:text-on-error rounded-full transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-outline uppercase tracking-widest px-2">
+                    {activeTab === 'comportamento' ? 'Nome do Aluno' : 'Nome do Item'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={newItemName}
+                    onChange={e => setNewItemName(e.target.value)}
+                    autoFocus
+                    placeholder={activeTab === 'comportamento' ? 'Ex: João Silva' : 'Ex: Tinta Guache'}
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-5 py-4 font-bold text-on-surface focus:ring-2 focus:ring-primary/50 text-sm outline-none transition-all mt-1"
+                  />
+                </div>
+                
+                <button 
+                  onClick={handleAddItem}
+                  className="w-full bg-primary text-on-primary py-4 rounded-2xl font-bold flex items-center justify-center shadow-md hover:bg-primary/90 transition-all active:scale-95"
+                >
+                  Salvar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
