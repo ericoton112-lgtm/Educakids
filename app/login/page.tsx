@@ -77,7 +77,7 @@ export default function LoginPage() {
       <header className="w-full max-w-md flex justify-between items-center h-20 px-4 absolute top-0">
         <div className="flex items-center gap-3">
           <BookMarked size={32} className="text-primary" />
-          <h1 className="font-sans font-bold text-2xl text-primary tracking-tight">EduSpark</h1>
+          <h1 className="font-sans font-bold text-2xl text-primary tracking-tight">Educakids</h1>
         </div>
       </header>
 
@@ -159,7 +159,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="profa.maria@eduspark.com"
+                  placeholder="profa.maria@educakids.com"
                   className="w-full pl-14 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all text-on-surface"
                 />
               </div>

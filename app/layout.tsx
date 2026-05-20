@@ -13,7 +13,7 @@ const nunito = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'EduSpark - Nurture & Bloom',
+  title: 'Educakids - Nurture & Bloom',
   description: 'Sistema de gestão pedagógica e biblioteca de atividades para professores.',
 };
 

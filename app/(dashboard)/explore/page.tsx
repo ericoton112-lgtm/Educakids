@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, BookOpen, Music, Puzzle, ArrowRight, Heart, X, Volume2, Sparkles, Trophy, Play, RotateCcw, ChevronLeft, Award } from 'lucide-react';
 
+const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
+const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5);
+
 export default function ExplorePage() {
   const [activeFilter, setActiveFilter] = useState('Todas as Idades');
   const [searchQuery, setSearchQuery] = useState('');
@@ -259,7 +262,7 @@ export default function ExplorePage() {
   const [moves, setMoves] = useState(0);
 
   const initMemoryGame = (themeIdx: number) => {
-    const shuffled = [...memoryThemes[themeIdx]].sort(() => Math.random() - 0.5);
+    const shuffled = shuffleArray(memoryThemes[themeIdx]);
     setCards(shuffled);
     setFlipped([]);
     setMatched([]);
@@ -303,9 +306,9 @@ export default function ExplorePage() {
   };
 
   const spawnReflex = (themeIdx: number) => {
-    const randomSpot = Math.floor(Math.random() * 4);
+    const randomSpot = getRandomIndex(4);
     const items = reflexThemes[themeIdx].items;
-    const randomEmoji = items[Math.floor(Math.random() * items.length)];
+    const randomEmoji = items[getRandomIndex(items.length)];
     setActiveReflexIdx(randomSpot);
     setCurrentReflexEmoji(randomEmoji);
   };
@@ -356,8 +359,8 @@ export default function ExplorePage() {
     if (gameIdx === 8) dataset = countListChall;
     if (gameIdx === 9) dataset = oppositesListChall;
 
-    const chall = dataset[Math.floor(Math.random() * dataset.length)];
-    const shuffledOptions = [...chall.options].sort(() => Math.random() - 0.5);
+    const chall = dataset[getRandomIndex(dataset.length)];
+    const shuffledOptions = shuffleArray(chall.options);
     setQuizChallenge({
       prompt: chall.prompt,
       correct: chall.correct,
@@ -376,19 +379,7 @@ export default function ExplorePage() {
     }
   };
 
-  // Setup specific game setups when selected
-  useEffect(() => {
-    if (activeGameIdx !== null) {
-      if (activeGameIdx >= 0 && activeGameIdx <= 2) {
-        initMemoryGame(activeGameIdx); // Setup Memory Theme
-      } else if (activeGameIdx >= 3 && activeGameIdx <= 5) {
-        startReflexGame(activeGameIdx - 3); // Setup Reflex Theme
-      } else if (activeGameIdx >= 6 && activeGameIdx <= 9) {
-        setQuizStreak(0);
-        initQuizGame(activeGameIdx); // Setup Quiz Theme
-      }
-    }
-  }, [activeGameIdx]);
+  // (Removed useEffect to avoid set-state-in-effect issues)
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 pb-20">
@@ -592,7 +583,7 @@ export default function ExplorePage() {
                         <span className="absolute top-2 right-2 text-2xl animate-spin duration-3000">🎵</span>
                         <h4 className="font-sans font-bold text-lg text-secondary">Cantando: {musicList[activeMusicIdx].title} {musicList[activeMusicIdx].emoji}</h4>
                         <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic max-w-md mx-auto">
-                          "{musicList[activeMusicIdx].lyrics}"
+                          &quot;{musicList[activeMusicIdx].lyrics}&quot;
                         </p>
                         <div className="flex justify-center gap-1.5 pt-2">
                           {musicList[activeMusicIdx].sequence.map((n, idx) => (
@@ -657,7 +648,17 @@ export default function ExplorePage() {
                           <motion.div
                             key={idx}
                             whileHover={{ y: -2, scale: 1.01 }}
-                            onClick={() => setActiveGameIdx(idx)}
+                            onClick={() => {
+                              setActiveGameIdx(idx);
+                              if (idx >= 0 && idx <= 2) {
+                                initMemoryGame(idx);
+                              } else if (idx >= 3 && idx <= 5) {
+                                startReflexGame(idx - 3);
+                              } else if (idx >= 6 && idx <= 9) {
+                                setQuizStreak(0);
+                                initQuizGame(idx);
+                              }
+                            }}
                             className="p-4 bg-surface-container-low hover:bg-tertiary/5 rounded-2xl border border-outline-variant/30 flex gap-3 items-center cursor-pointer transition-all shadow-sm"
                           >
                             <span className="text-3xl bg-tertiary/15 p-2.5 rounded-xl">{g.emoji}</span>

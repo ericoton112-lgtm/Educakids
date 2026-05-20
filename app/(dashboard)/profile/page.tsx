@@ -10,7 +10,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: 'Professora Maria',
-    email: 'profa.maria@eduspark.com',
+    email: 'profa.maria@educakids.com',
     classes: 'Berçário A',
     school: 'Colégio Saber',
     avatar: 'https://picsum.photos/seed/teacher/400'
@@ -39,7 +39,7 @@ export default function ProfilePage() {
         if (data) {
           setProfile({
             name: data.name || 'Professora Maria',
-            email: data.email || user.email || 'profa.maria@eduspark.com',
+            email: data.email || user.email || 'profa.maria@educakids.com',
             classes: data.classes || 'Berçário A',
             school: data.school || 'Colégio Saber',
             avatar: data.avatar || 'https://picsum.photos/seed/teacher/400'

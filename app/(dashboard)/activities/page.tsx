@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Palette, BookOpen, Brain, Footprints, Bolt, Check, Layers, Clock, AlertCircle, Printer } from 'lucide-react';
+import { Sparkles, Palette, BookOpen, Brain, Footprints, Bolt, Check, Layers, Clock, AlertCircle, Printer, Trash2, History } from 'lucide-react';
 
 interface Activity {
   title: string;
@@ -13,10 +13,24 @@ interface Activity {
   materials: string[];
   steps: { title: string; content: string }[];
   studentQuestions?: string[];
+  illustrationPrompts?: string[];
+}
+
+interface HistoryItem {
+  id: string;
+  timestamp: string;
+  formData: {
+    ageGroup: string;
+    theme: string;
+    difficulty: string;
+    activityType: string[];
+  };
+  activity: Activity;
 }
 
 export default function ActivitiesPage() {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [printProgress, setPrintProgress] = useState('');
   const [loading, setLoading] = useState(false);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState({
@@ -26,15 +40,36 @@ export default function ActivitiesPage() {
     activityType: ['Pintura'],
   });
   const [error, setError] = useState<string | null>(null);
+  const [historyList, setHistoryList] = useState<HistoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const historyJson = localStorage.getItem('educakids_activity_history');
+      if (historyJson) {
+        try {
+          return JSON.parse(historyJson);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    return [];
+  });
 
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
     setActivity(null);
     try {
+      const previousTitlesAndThemes = historyList.map(item => `${item.activity.title} (${item.formData.theme})`);
+
       const res = await fetch('/api/genai/activity', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          previousTitlesAndThemes
+        }),
       });
       if (!res.ok) {
         throw new Error('Erro na requisição');
@@ -44,12 +79,30 @@ export default function ActivitiesPage() {
         throw new Error(data.error);
       }
       setActivity(data);
+
+      // Save to local storage history
+      const newItem: HistoryItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        timestamp: new Date().toLocaleString('pt-BR'),
+        formData: { ...formData },
+        activity: data
+      };
+      const updatedHistory = [newItem, ...historyList].slice(0, 20); // Keep up to 20 items
+      setHistoryList(updatedHistory);
+      localStorage.setItem('educakids_activity_history', JSON.stringify(updatedHistory));
     } catch (err: any) {
       console.error(err);
       setError("Ops! Não foi possível gerar a atividade agora. Verifique sua conexão ou tente novamente mais tarde.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const deleteHistoryItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Avoid loading the activity when clicking delete
+    const updated = historyList.filter(item => item.id !== id);
+    setHistoryList(updated);
+    localStorage.setItem('educakids_activity_history', JSON.stringify(updated));
   };
 
   const activityTypes = [
@@ -60,14 +113,17 @@ export default function ActivitiesPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       <section>
         <h1 className="font-sans font-bold text-3xl text-on-surface">Gerador de Atividades</h1>
         <p className="text-on-surface-variant mt-1">Crie atividades lúdicas estruturadas e alinhadas aos objetivos da BNCC em segundos.</p>
       </section>
 
-      <div className="grid grid-cols-1 gap-6">
-        <section className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Left Column: Form and preview */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            <section className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-6">
           <div className="flex items-center gap-2 mb-2 text-primary">
             <Sparkles size={20} className="fill-current" />
             <h2 className="font-sans font-bold text-xl text-on-surface">Configuração</h2>
@@ -279,7 +335,11 @@ export default function ActivitiesPage() {
 
                       const isDrawingQ = (q: string) => /desenhe|pinte|colorir|colore|ilustre/i.test(q);
 
-                      const getImageUrl = (question: string, seed: number) => {
+                      const getPromptText = (question: string, index: number) => {
+                        if (activity?.illustrationPrompts && activity.illustrationPrompts[index]) {
+                          return `simple cute black and white coloring page for children, ${activity.illustrationPrompts[index]}, thick bold outlines, no shading, cartoon style, printable worksheet`;
+                        }
+
                         const cleanSubject = question
                           .replace(/^\d+[\.\)\s]*/,'')
                           .replace(/desenhe|pinte|colorir|colore|ilustre|no espaço abaixo|abaixo[:\s]*/gi, '')
@@ -290,44 +350,89 @@ export default function ActivitiesPage() {
                           .replace(/[:\/\?\\#]/g, ' ')
                           .replace(/\s+/g,' ').trim();
 
-                        const p = `simple cute black and white coloring page for children, ${cleanSubject}, ${cleanTitle}, thick bold outlines, no shading, cartoon style, printable worksheet`;
-                        
-                        // Passamos pela nossa própria API para evitar bloqueios de CORS/AdBlockers no navegador do usuário
-                        return `/api/image-proxy?prompt=${encodeURIComponent(p)}&seed=${seed}`;
+                        return `black and white coloring page, simple drawing of ${cleanSubject}, ${cleanTitle}, cartoon style, thick outlines, isolated on white background`;
+                      };
+
+                      const getProxyUrl = (prompt: string, seed: number, model: string = 'flux') => {
+                        return `/api/image-proxy?prompt=${encodeURIComponent(prompt)}&seed=${seed}&model=${model}`;
                       };
 
                       const questions = activity!.studentQuestions || [];
 
-                      // Preload all drawing illustrations beforehand on the main window (guarantees caching)
-                      const preloadUrls: string[] = [];
-                      questions.forEach((q, i) => {
-                        if (isDrawingQ(q)) {
-                          preloadUrls.push(getImageUrl(q, i + 1));
-                        }
-                      });
+                      // Track valid images to prevent broken icons in the final PDF
+                      const validImageUrls = new Map<string, string>();
+                      
+                      const drawingQuestions = questions.map((q, i) => ({ q, index: i })).filter(item => isDrawingQ(item.q));
+                      if (drawingQuestions.length > 0) {
+                        setPrintProgress(`Iniciando geração (0/${drawingQuestions.length})...`);
+                        setError(null); // Limpa erros anteriores
+                        for (let k = 0; k < drawingQuestions.length; k++) {
+                          const item = drawingQuestions[k];
+                          const prompt = getPromptText(item.q, item.index);
+                          const url = getProxyUrl(prompt, item.index + 1, 'flux');
+                          
+                          let success = false;
+                          let attempts = 3;
+                          
+                          while (attempts > 0 && !success) {
+                            setPrintProgress(`Gerando imagem ${k + 1} de ${drawingQuestions.length}...${attempts < 3 ? ` (Tentativa ${4 - attempts}/3)` : ''}`);
+                            
+                            success = await new Promise<boolean>(async (resolve) => {
+                              try {
+                                const controller = new AbortController();
+                                const timeoutId = setTimeout(() => controller.abort(), 95000); // 95s timeout
+                                
+                                const res = await fetch(url, { signal: controller.signal });
+                                clearTimeout(timeoutId);
+                                
+                                if (res.ok) {
+                                  await res.blob(); // Baixa os bytes para o cache do navegador
+                                  resolve(true);
+                                } else {
+                                  resolve(false);
+                                }
+                              } catch (err) {
+                                resolve(false);
+                              }
+                            });
 
-                      if (preloadUrls.length > 0) {
-                        // Fazemos o pré-carregamento de forma SEQUENCIAL para não sobrecarregar a IA gratuita e evitar falhas/timeouts
-                        for (const url of preloadUrls) {
-                          await new Promise<void>((resolve) => {
-                            const img = new window.Image();
-                            img.src = url;
-                            img.onload = () => resolve();
-                            img.onerror = () => resolve();
-                            // Timeout de segurança por imagem
-                            setTimeout(resolve, 20000);
-                          });
+                            if (!success) {
+                              attempts--;
+                              if (attempts > 0) {
+                                setPrintProgress(`Servidor ocupado. Reabastecendo em 3s...`);
+                                await new Promise((resolve) => setTimeout(resolve, 3000));
+                              }
+                            }
+                          }
+
+                          if (success) {
+                            validImageUrls.set(item.q, url);
+                          } else {
+                            // Se falhar após todas as tentativas, cancelamos a impressão para não gerar folha em branco
+                            setError("O servidor de ilustrações da IA está muito congestionado. Por favor, aguarde alguns segundos e clique em Imprimir novamente.");
+                            setIsPrinting(false);
+                            return;
+                          }
+
+                          // Aguarda 2 segundos antes de iniciar a próxima requisição para liberar o túnel de IP
+                          if (k < drawingQuestions.length - 1) {
+                            await new Promise((resolve) => setTimeout(resolve, 2000));
+                          }
                         }
                       }
+                      setPrintProgress('Formatando folha para impressão...');
 
                       const questionsHtml = questions.map((q, i) => {
                         const isDrawing = isDrawingQ(q);
-                        const imgUrl = isDrawing ? getImageUrl(q, i + 1) : '';
+                        const imgUrl = validImageUrls.get(q);
+                        
                         return `
                           <div class="question-block">
                             <div class="question-text">${q}</div>
                             ${isDrawing
-                              ? `<img src="${imgUrl}" class="drawing-img" alt="Ilustracao" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><div class="drawing-box" style="display:none;"></div>`
+                              ? (imgUrl 
+                                  ? `<img src="${imgUrl}" class="drawing-img" alt="Ilustracao da atividade" />`
+                                  : `<div class="drawing-box"></div>`)
                               : `<div class="answer-line"></div><div class="answer-line"></div>`
                             }
                           </div>`;
@@ -392,7 +497,7 @@ export default function ActivitiesPage() {
                                 <div class="meta">Atividade ${activity!.type} de Artes e Descoberta</div>
                               </div>
                               <div class="questions">${questionsHtml}</div>
-                              <div class="footer">Folha de Atividade · Gerada por IA · EduSpark</div>
+                              <div class="footer">Folha de Atividade · Gerada por IA · Educakids</div>
                               <script>
                                 var imgs = Array.from(document.querySelectorAll('.drawing-img'));
                                 var doPrint = function() {
@@ -425,7 +530,7 @@ export default function ActivitiesPage() {
                     {isPrinting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-on-surface/30 border-t-on-surface rounded-full animate-spin" />
-                        Carregando Ilustrações...
+                        {printProgress || 'Carregando Ilustrações...'}
                       </>
                     ) : (
                       <>
@@ -459,6 +564,67 @@ export default function ActivitiesPage() {
           </motion.section>
         )}
       </AnimatePresence>
+        </div>
+
+        {/* Right Column: History List */}
+        <div className="space-y-6 lg:col-span-1">
+          <section className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-6">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
+              <History size={20} />
+              <h2 className="font-sans font-bold text-xl text-on-surface">Histórico</h2>
+            </div>
+            
+            {historyList.length === 0 ? (
+              <div className="text-center py-8 text-on-surface-variant/60 space-y-2">
+                <p className="text-sm font-medium">Nenhuma atividade gerada ainda.</p>
+                <p className="text-xs opacity-75">Suas atividades salvas aparecerão aqui para acesso rápido.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {historyList.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setActivity(item.activity);
+                      setFormData(item.formData);
+                    }}
+                    className={`p-4 rounded-2xl bg-surface-container-lowest border cursor-pointer transition-all hover:scale-[1.02] flex justify-between items-start gap-3 group ${
+                      activity?.title === item.activity.title 
+                        ? 'border-primary ring-2 ring-primary/20' 
+                        : 'border-outline-variant/30 hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <h4 className="font-bold text-sm text-on-surface truncate leading-tight group-hover:text-primary transition-colors">
+                        {item.activity.title}
+                      </h4>
+                      <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">
+                        {item.formData.theme || 'Sem Tema'}
+                      </p>
+                      <div className="flex items-center gap-2 text-[9px] opacity-75">
+                        <span className="bg-primary-container/30 px-2 py-0.5 rounded text-primary font-bold">
+                          {item.formData.difficulty}
+                        </span>
+                        <span className="font-semibold text-outline">
+                          {item.timestamp.split(',')[0]}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={(e) => deleteHistoryItem(item.id, e)}
+                      className="text-on-surface-variant hover:text-error p-1 rounded-lg hover:bg-error/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                      title="Excluir do histórico"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
