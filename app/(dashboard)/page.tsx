@@ -1,257 +1,453 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Cake, Plus, ChevronRight, Sun, X, Play, Check } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Cake, Plus, ChevronRight, Sun, X, Play, Check, CloudRain, Palette, Sparkles, Star, Users, Smile, Meh, Frown, BarChart3, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { startOfWeek, format } from 'date-fns';
 
 export default function HomePage() {
   const supabase = createClient();
   const [teacherName, setTeacherName] = useState('Professora');
+  const [teacherClass, setTeacherClass] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Dados do Planner
+  const [todayActivity, setTodayActivity] = useState<{ title: string; time: string; type: string } | null>(null);
+  const [weekDays, setWeekDays] = useState<any[]>([]);
+  const [weekTheme, setWeekTheme] = useState('');
+
+  // Dados da Sala
+  const [presentCount, setPresentCount] = useState(0);
+  const [absentCount, setAbsentCount] = useState(0);
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  // Foco de Hoje
+  const [focusItems, setFocusItems] = useState<{ id: number; title: string; done: boolean }[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState('');
+  const [isStarted, setIsStarted] = useState(false);
+
+  // Data e saudação
+  const now = useMemo(() => new Date(), [mounted]);
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const greetingIcon = hour < 12 ? '🌅' : hour < 18 ? '☀️' : '🌙';
+
+  const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  const monthsLong = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const todayName = daysOfWeek[now.getDay()];
+  const formattedDate = `${todayName}, ${now.getDate()} de ${monthsLong[now.getMonth()]} de ${now.getFullYear()}`;
 
   useEffect(() => {
-    // 1. Carregar do localStorage (sempre tem o dado mais recente)
+    setMounted(true);
+
+    // 1. Carregar nome do professor
     const stored = localStorage.getItem('educakids_user');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed.name) {
-          setTeacherName(parsed.name);
-        }
+        if (parsed.name) setTeacherName(parsed.name);
       } catch { /* ignore */ }
     }
 
-    // 2. Buscar dados atualizados do Supabase
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 2a. Tentar profiles table (dados mais recentes)
         try {
           const { data } = await supabase
             .from('profiles')
-            .select('name')
+            .select('name, classes')
             .eq('id', user.id)
             .single();
 
           if (data?.name) {
             setTeacherName(data.name);
+            if (data.classes) setTeacherClass(data.classes);
             localStorage.setItem('educakids_user', JSON.stringify({
               name: data.name,
               email: user.email,
             }));
             return;
           }
-        } catch {
-          // Tabela profiles pode não existir
-        }
+        } catch { /* ignore */ }
 
-        // 2b. Fallback: user_metadata
         const metaName = user.user_metadata?.name;
         if (metaName) {
           setTeacherName(metaName);
+          setTeacherClass(user.user_metadata?.classes || '');
         }
       } catch (err) {
         console.error('Erro ao carregar nome:', err);
       }
     };
     loadProfile();
-  }, [supabase]);
 
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      title: 'Alerta de Alergia: Leo M.',
-      desc: 'Sem laticínios no lanche da manhã hoje, conforme nota dos pais.',
-      tag: 'URGENTE',
-      tagColor: 'bg-error-container text-on-error-container',
-      icon: AlertCircle,
-      iconColor: 'text-error',
-    },
-    {
-      id: 2,
-      title: 'Prep. Hora do Sono',
-      desc: 'Verificar berços e playlist de música suave.',
-      tag: 'TAREFA',
-      tagColor: 'bg-primary-container/30 text-primary',
-      icon: CheckCircle,
-      iconColor: 'text-primary',
-    },
-    {
-      id: 3,
-      title: 'Aniversário da Maya!',
-      desc: 'Preparar o "Chapéu de Aniversário" para a roda.',
-      tag: 'FESTA',
-      tagColor: 'bg-secondary-container/30 text-secondary',
-      icon: Cake,
-      iconColor: 'text-secondary',
-    },
-  ]);
+    // 2. Carregar planner da semana atual
+    const monday = startOfWeek(now, { weekStartsOn: 1 });
+    const weekKey = format(monday, 'yyyy-MM-dd');
+    const planData = localStorage.getItem(`educakids_plan_${weekKey}`);
+    if (planData) {
+      try {
+        const plan = JSON.parse(planData);
+        if (plan.theme) setWeekTheme(plan.theme);
+        if (plan.days) {
+          setWeekDays(plan.days);
+          const todayIndex = now.getDay() - 1; // 0=segunda
+          if (todayIndex >= 0 && todayIndex < plan.days.length) {
+            const todayPlan = plan.days[todayIndex];
+            if (todayPlan.activities && todayPlan.activities.length > 0) {
+              setTodayActivity({
+                title: todayPlan.activities[0].text,
+                time: 'Manhã',
+                type: todayPlan.activities[0].type,
+              });
+            } else {
+              setTodayActivity({
+                title: todayPlan.focus || 'Exploração Livre',
+                time: 'Manhã',
+                type: 'Atividade do Dia',
+              });
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
 
-  const [isStarted, setIsStarted] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newItemTitle, setNewItemTitle] = useState('');
-  const [newItemDesc, setNewItemDesc] = useState('');
+    // 3. Carregar dados da sala
+    const studentsData = localStorage.getItem('educakids_students');
+    if (studentsData) {
+      try {
+        const students = JSON.parse(studentsData);
+        setTotalStudents(students.length);
+        setPresentCount(students.filter((s: any) => s.behavior !== 'absent').length);
+        setAbsentCount(students.filter((s: any) => s.behavior === 'absent').length);
+      } catch { /* ignore */ }
+    }
 
-  const dismissItem = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    // 4. Carregar focos do localStorage
+    const savedFocus = localStorage.getItem('educakids_focus_items');
+    if (savedFocus) {
+      try {
+        setFocusItems(JSON.parse(savedFocus));
+      } catch { /* ignore */ }
+    }
+  }, [supabase, now]);
+
+  // Salvar focos no localStorage
+  const saveFocusItems = (items: { id: number; title: string; done: boolean }[]) => {
+    setFocusItems(items);
+    localStorage.setItem('educakids_focus_items', JSON.stringify(items));
   };
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const toggleFocusDone = (id: number) => {
+    saveFocusItems(focusItems.map(item =>
+      item.id === id ? { ...item, done: !item.done } : item
+    ));
+  };
+
+  const dismissFocus = (id: number) => {
+    saveFocusItems(focusItems.filter(item => item.id !== id));
+  };
+
+  const handleAddFocus = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemTitle.trim()) return;
-
-    const newItem = {
-      id: Date.now(),
-      title: newItemTitle,
-      desc: newItemDesc || 'Novo lembrete adicionado.',
-      tag: 'TAREFA',
-      tagColor: 'bg-primary-container/30 text-primary',
-      icon: CheckCircle,
-      iconColor: 'text-primary',
-    };
-
-    setItems([newItem, ...items]);
+    const newItem = { id: Date.now(), title: newItemTitle.trim(), done: false };
+    saveFocusItems([newItem, ...focusItems]);
     setNewItemTitle('');
-    setNewItemDesc('');
     setIsModalOpen(false);
   };
 
-  return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-10">
-      <section>
-        <h2 className="font-sans font-bold text-3xl text-on-surface">Olá, {teacherName}</h2>
+  const progressTotal = focusItems.length;
+  const progressDone = focusItems.filter(i => i.done).length;
+  const progressPercent = progressTotal > 0 ? Math.round((progressDone / progressTotal) * 100) : 0;
 
-        <p className="text-on-surface-variant mt-1 italic">Pronta para mais um dia de brincadeiras estruturadas?</p>
+  // Cards da agenda semanal (máximo 5 dias)
+  const agendaDays = weekDays.slice(0, 5);
+  const weekDayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+  const iconMap: Record<string, any> = { Sun, Palette, CloudRain, Sparkles, Star };
+
+  // Contagem de humor dos alunos
+  const [smileCount, setSmileCount] = useState(0);
+  const [mehCount, setMehCount] = useState(0);
+  const [sadCount, setSadCount] = useState(0);
+
+  useEffect(() => {
+    const studentsData = localStorage.getItem('educakids_students');
+    if (studentsData) {
+      try {
+        const students = JSON.parse(studentsData);
+        setSmileCount(students.filter((s: any) => s.behavior === 'smile').length);
+        setMehCount(students.filter((s: any) => s.behavior === 'meh').length);
+        setSadCount(students.filter((s: any) => s.behavior === 'sad').length);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+      {/* Saudação e Data */}
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 className="font-sans font-bold text-3xl text-on-surface">
+            {greeting}, {teacherName} {greetingIcon}
+          </h2>
+          <p className="text-on-surface-variant mt-0.5 text-sm font-medium">{formattedDate}</p>
+          {teacherClass && (
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-black text-secondary uppercase tracking-wider bg-secondary-container/30 px-3 py-1 rounded-full">
+              <Users size={10} />
+              {teacherClass}
+            </span>
+          )}
+        </div>
       </section>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2 bg-primary-container text-on-primary-container p-5 rounded-2xl flex items-center justify-between shadow-soft border border-primary/10 transition-colors duration-300">
+        {/* Card de Atividade Atual (dinâmico do planner) */}
+        <div className="col-span-2 bg-gradient-to-br from-primary to-primary/80 text-on-primary p-5 rounded-2xl flex items-center justify-between shadow-soft border border-primary/10 transition-colors duration-300">
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wider opacity-80">
-              {isStarted ? 'Atividade Atual' : 'Próxima Atividade'}
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">
+              {isStarted ? '📌 Atividade em Andamento' : '📋 Próxima Atividade'}
             </p>
-            <h3 className="font-sans font-bold text-xl">Pintura a Dedo</h3>
-            <div className="flex items-center gap-1.5 text-sm opacity-90">
-              <span className="material-symbols-outlined text-sm">schedule</span>
-              <span>10:30 AM</span>
-            </div>
-          </div>
-          <motion.button 
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsStarted(!isStarted)}
-            className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-md flex items-center gap-2 transition-colors duration-300 ${
-              isStarted ? 'bg-tertiary text-on-tertiary' : 'bg-primary text-on-primary'
-            }`}
-          >
-            {isStarted ? (
-              <>
-                <Check size={16} /> Em andamento
-              </>
-            ) : (
-              <>
-                <Play size={16} fill="currentColor" /> Iniciar
-              </>
+            <h3 className="font-sans font-bold text-xl leading-tight">
+              {todayActivity?.title || 'Nenhuma atividade planejada'}
+            </h3>
+            {todayActivity && (
+              <div className="flex items-center gap-2 text-sm opacity-85 mt-1">
+                <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                  {todayActivity.type}
+                </span>
+                <span className="text-xs opacity-70">{todayActivity.time}</span>
+              </div>
             )}
-          </motion.button>
+            {weekTheme && (
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 opacity-70">
+                Tema: {weekTheme}
+              </p>
+            )}
+          </div>
+          {todayActivity && (
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsStarted(!isStarted)}
+              className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-md flex items-center gap-2 transition-colors duration-300 shrink-0 ${
+                isStarted 
+                  ? 'bg-white/25 text-white border border-white/30' 
+                  : 'bg-white text-primary'
+              }`}
+            >
+              {isStarted ? (
+                <><Check size={14} /> Concluir</>
+              ) : (
+                <><Play size={14} fill="currentColor" /> Iniciar</>
+              )}
+            </motion.button>
+          )}
         </div>
 
+        {/* Card Resumo da Sala */}
         <Link href="/classroom" className="block">
           <motion.div 
             whileTap={{ scale: 0.98 }}
-            className="bg-secondary-container text-on-secondary-container p-5 rounded-2xl border border-secondary/10 flex flex-col justify-between h-36"
+            className="bg-secondary-container/40 text-on-secondary-container p-4 rounded-2xl border border-secondary/10 flex flex-col justify-between h-32 relative overflow-hidden group"
           >
-            <FileText size={24} />
-            <span className="font-bold text-sm">Notas da Aula</span>
+            <Users size={20} className="opacity-30 group-hover:scale-110 transition-transform" />
+            <div>
+              <p className="font-bold text-2xl leading-none">{presentCount}/{totalStudents}</p>
+              <p className="font-bold text-sm mt-1">Presentes</p>
+              {absentCount > 0 && (
+                <p className="text-[10px] opacity-70 mt-0.5">{absentCount} ausente{absentCount > 1 ? 's' : ''}</p>
+              )}
+            </div>
           </motion.div>
         </Link>
 
+        {/* Card de Humor da Turma */}
+        <Link href="/classroom" className="block">
+          <motion.div 
+            whileTap={{ scale: 0.98 }}
+            className="bg-tertiary-container/40 text-on-tertiary-container p-4 rounded-2xl border border-tertiary/10 flex flex-col justify-between h-32"
+          >
+            <Smile size={20} className="opacity-30" />
+            <div>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="flex items-center gap-1"><Smile size={14} className="text-success" /> {smileCount}</span>
+                <span className="flex items-center gap-1"><Meh size={14} className="text-secondary" /> {mehCount}</span>
+                <span className="flex itemscape gap-1"><Frown size={14} className="text-error" /> {sadCount}</span>
+              </div>
+              <p className="font-bold text-sm mt-1">Humor da Turma</p>
+            </div>
+          </motion.div>
+        </Link>
+
+        {/* Card Notas da Aula */}
+        <Link href="/activities" className="block">
+          <motion.div 
+            whileTap={{ scale: 0.98 }}
+            className="bg-primary-container/30 text-on-primary-container p-4 rounded-2xl border border-primary/10 flex items-center gap-4 h-24"
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <Sparkles size={20} className="text-primary" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Gerar Atividade</p>
+              <p className="text-[10px] opacity-70 mt-0.5">Com inteligência artificial</p>
+            </div>
+          </motion.div>
+        </Link>
+
+        {/* Card Planejamento */}
         <Link href="/planner" className="block">
           <motion.div 
             whileTap={{ scale: 0.98 }}
-            className="bg-tertiary-container text-on-tertiary-container p-5 rounded-2xl border border-tertiary/10 flex flex-col justify-between h-36"
+            className="bg-secondary-container/30 text-on-secondary-container p-4 rounded-2xl border border-secondary/10 flex items-center gap-4 h-24"
           >
-            <CalendarIcon size={24} />
-            <span className="font-bold text-sm">Calendário</span>
+            <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center shrink-0">
+              <CalendarIcon size={20} className="text-secondary" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Planejamento</p>
+              <p className="text-[10px] opacity-70 mt-0.5">Ver semana atual</p>
+            </div>
           </motion.div>
         </Link>
       </div>
 
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-sans font-bold text-lg text-on-surface">Agenda Semanal</h3>
-          <Link href="/planner" className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
-            Ver tudo <ChevronRight size={16} />
-          </Link>
+      {/* Progresso dos Focos */}
+      {progressTotal > 0 && (
+        <div className="bg-surface-container-lowest border border-outline-variant/30 p-4 rounded-2xl space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+              Progresso do Dia
+            </span>
+            <span className="text-sm font-black text-primary">{progressPercent}%</span>
+          </div>
+          <div className="w-full bg-surface-container-highest rounded-full h-2.5 overflow-hidden shadow-inner">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.5, type: 'spring' }}
+              className="bg-primary h-full rounded-full shadow-lg" 
+            />
+          </div>
+          <p className="text-[10px] text-on-surface-variant font-medium">
+            {progressDone} de {progressTotal} {progressTotal === 1 ? 'foco concluído' : 'focos concluídos'}
+          </p>
         </div>
-        
-        <div className="grid grid-cols-4 gap-3 h-48">
-          <div className="col-span-2 row-span-2 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30 flex flex-col justify-end relative overflow-hidden group">
-            <Sun className="absolute top-2 right-2 text-primary/10 w-24 h-24 group-hover:scale-110 transition-transform" />
-            <div className="relative z-10">
-              <p className="text-primary text-[10px] font-bold uppercase tracking-widest">Quarta-feira</p>
-              <h4 className="font-sans font-bold text-lg leading-tight">Passeio na Natureza</h4>
-              <p className="text-on-surface-variant text-xs mt-1">Coleta de folhas para colagem</p>
-            </div>
-          </div>
-          
-          <div className="col-span-2 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
-              <span className="material-symbols-outlined text-xl">music_note</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-on-surface-variant opacity-70">QUI</p>
-              <p className="font-bold text-sm truncate">Hora da Música</p>
-            </div>
-          </div>
-          
-          <div className="col-span-2 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shrink-0">
-              <span className="material-symbols-outlined text-xl">science</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-on-surface-variant opacity-70">SEX</p>
-              <p className="font-bold text-sm truncate">Mistura de Cores</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      )}
 
-      <section className="space-y-4">
+      {/* Agenda Semanal (dinâmica do planner) */}
+      {agendaDays.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-sans font-bold text-lg text-on-surface">Agenda da Semana</h3>
+            <Link href="/planner" className="text-primary text-xs font-bold flex items-center gap-1 hover:underline">
+              Ver tudo <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-5 gap-2.5">
+            {agendaDays.map((day: any, i: number) => {
+              const DayIcon = iconMap[day.iconName || 'Sun'] || Sun;
+              const isToday = i === now.getDay() - 1;
+              const firstActivity = day.activities?.[0]?.text || day.focus || 'Atividades Livres';
+
+              return (
+                <Link key={i} href="/planner" className="block">
+                  <motion.div 
+                    whileTap={{ scale: 0.95 }}
+                    className={`bg-surface-container-low p-3 rounded-2xl border transition-all ${
+                      isToday 
+                        ? 'border-primary/40 bg-primary/5 shadow-sm' 
+                        : 'border-outline-variant/20'
+                    }`}
+                  >
+                    <p className={`text-[10px] font-black uppercase tracking-wider mb-2 ${
+                      isToday ? 'text-primary' : 'text-on-surface-variant/60'
+                    }`}>
+                      {weekDayNames[i] || day.day}
+                    </p>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 ${
+                      day.iconBg || 'bg-surface-container-high'
+                    }`}>
+                      <DayIcon size={14} />
+                    </div>
+                    <p className="text-[10px] font-bold text-on-surface leading-tight line-clamp-2">
+                      {firstActivity}
+                    </p>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Foco de Hoje */}
+      <section className="space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="font-sans font-bold text-lg text-on-surface">Foco de Hoje</h3>
-          {items.length === 0 && (
-             <span className="text-xs text-on-surface-variant italic">Tudo limpo!</span>
+          {progressTotal > 0 && (
+            <span className="text-[10px] text-on-surface-variant font-medium">
+              {progressTotal} {progressTotal === 1 ? 'item' : 'itens'}
+            </span>
           )}
         </div>
-        <div className="space-y-3">
-          <AnimatePresence>
-            {items.map((item) => (
-              <motion.div 
-                key={item.id}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 20, opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="bg-surface-container-lowest border border-outline-variant/50 p-4 rounded-2xl flex items-start gap-4 hover:bg-surface-container-low transition-colors shadow-sm cursor-pointer"
-                onClick={() => dismissItem(item.id)}
-              >
-                <div className={`mt-1 ${item.iconColor}`}>
-                  <item.icon size={20} className="fill-current" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-on-surface">{item.title}</p>
-                  <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{item.desc}</p>
-                </div>
-                <div className={`${item.tagColor} px-2 py-0.5 rounded-full text-[9px] font-black shrink-0`}>
-                  {item.tag}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+
+        {focusItems.length === 0 ? (
+          <div className="bg-surface-container-low/40 rounded-2xl py-8 px-4 text-center border border-dashed border-outline-variant/30">
+            <BarChart3 size={32} className="mx-auto text-on-surface-variant/30 mb-2" />
+            <p className="text-sm font-bold text-on-surface-variant/50">Nenhum foco definido hoje</p>
+            <p className="text-xs text-on-surface-variant/40 mt-1">Clique no + para adicionar</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <AnimatePresence>
+              {focusItems.map((item) => (
+                <motion.div 
+                  key={item.id}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 20, opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className={`bg-surface-container-lowest border p-3.5 rounded-2xl flex items-center gap-3 transition-all ${
+                    item.done 
+                      ? 'border-primary/10 opacity-60' 
+                      : 'border-outline-variant/30'
+                  }`}
+                >
+                  <button
+                    onClick={() => toggleFocusDone(item.id)}
+                    className={`w-5.5 h-5.5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                      item.done 
+                        ? 'bg-primary border-primary' 
+                        : 'border-outline-variant hover:border-primary/60'
+                    }`}
+                  >
+                    {item.done && <Check size={12} className="text-on-primary font-black" />}
+                  </button>
+                  <span className={`flex-1 text-sm font-semibold leading-snug ${
+                    item.done ? 'text-on-surface-variant line-through' : 'text-on-surface'
+                  }`}>
+                    {item.title}
+                  </span>
+                  <button
+                    onClick={() => dismissFocus(item.id)}
+                    className="w-6 h-6 flex items-center justify-center rounded-full text-on-surface-variant/40 hover:text-error hover:bg-error-container/30 transition-all shrink-0"
+                  >
+                    <X size={12} />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
       </section>
 
       {/* FAB - Botão Flutuante */}
@@ -266,7 +462,7 @@ export default function HomePage() {
         </motion.button>
       </div>
 
-      {/* Modal de Novo Lembrete */}
+      {/* Modal de Novo Foco */}
       <AnimatePresence>
         {isModalOpen && (
           <>
@@ -285,7 +481,7 @@ export default function HomePage() {
               className="fixed bottom-0 left-0 w-full bg-surface z-50 rounded-t-3xl shadow-2xl p-6"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-sans font-bold text-xl text-on-surface">Novo Foco de Hoje</h3>
+                <h3 className="font-sans font-bold text-xl text-on-surface">Novo Foco do Dia</h3>
                 <button 
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 bg-surface-container-high rounded-full text-on-surface-variant hover:bg-error-container hover:text-error transition-colors"
@@ -294,33 +490,25 @@ export default function HomePage() {
                 </button>
               </div>
               
-              <form onSubmit={handleAddItem} className="space-y-4">
+              <form onSubmit={handleAddFocus} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Título</label>
+                  <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">O que precisa de atenção hoje?</label>
                   <input 
                     type="text" 
                     required
                     value={newItemTitle}
                     onChange={(e) => setNewItemTitle(e.target.value)}
-                    placeholder="Ex: Ligar para os pais do Leo"
+                    placeholder="Ex: Verificar alergia do Leo"
                     className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Descrição (opcional)</label>
-                  <textarea 
-                    value={newItemDesc}
-                    onChange={(e) => setNewItemDesc(e.target.value)}
-                    placeholder="Detalhes adicionais..."
-                    rows={3}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors text-sm resize-none"
+                    autoFocus
                   />
                 </div>
                 
                 <button 
                   type="submit"
-                  className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-bold mt-2 hover:bg-primary/90 transition-colors"
+                  className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-bold mt-2 hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                 >
+                  <Plus size={18} />
                   Adicionar Foco
                 </button>
               </form>
@@ -331,4 +519,3 @@ export default function HomePage() {
     </div>
   );
 }
-
