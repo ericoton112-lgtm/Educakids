@@ -14,19 +14,10 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-    "GEMINI_API_KEY": "@gemini_api_key"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://eohslabeucbasqocsprj.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_C72KMxY7gVojZG0E1E991w_oh-R8WBd",
+    "GEMINI_API_KEY": "AIzaSyAX8Ha-TKvQyLeGO3qMbmvCcQiWMLpSbig"
   },
-  "functions": {
-    "app/api/genai/planner/route.ts": {
-      "maxDuration": 30
-    },
-    "app/api/genai/activity/route.ts": {
-      "maxDuration": 30
-    }
-  },
-  "crons": [],
   "rewrites": [
     {
       "source": "/api/:path*",
