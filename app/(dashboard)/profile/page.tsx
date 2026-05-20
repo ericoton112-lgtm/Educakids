@@ -20,7 +20,7 @@ export default function ProfilePage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // 1. Carregar do localStorage primeiro (rápido e confiável)
+    // 1. Carregar do localStorage primeiro (sempre tem o dado mais recente do save)
     const stored = localStorage.getItem('educakids_user');
     if (stored) {
       try {
@@ -33,31 +33,17 @@ export default function ProfilePage() {
       } catch { /* ignore */ }
     }
 
-    // 2. Sobrescrever com dados do Supabase se disponíveis
+    // 2. Tentar dados da tabela profiles no Supabase (fonte oficial)
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const userName = user.user_metadata?.name || '';
-        const userEmail = user.email || '';
+        let foundName = '';
+        let foundEmail = user.email || '';
+        let foundClasses = '';
+        let foundSchool = '';
 
-        // Atualizar com user_metadata
-        if (userName || userEmail) {
-          setProfile(prev => ({
-            ...prev,
-            name: userName || prev.name,
-            email: userEmail || prev.email,
-            classes: user.user_metadata?.classes || prev.classes,
-            school: user.user_metadata?.school || prev.school,
-          }));
-          localStorage.setItem('educakids_user', JSON.stringify({
-            name: userName,
-            email: userEmail,
-          }));
-        }
-
-        // Tentar dados da tabela profiles (sobrescreve se existir)
         try {
           const { data } = await supabase
             .from('profiles')
@@ -66,21 +52,42 @@ export default function ProfilePage() {
             .single();
 
           if (data) {
-            const profileData = {
-              name: data.name || profile.name,
-              email: data.email || user.email || profile.email,
-              classes: data.classes || profile.classes,
-              school: data.school || profile.school,
+            foundName = data.name || '';
+            foundEmail = data.email || user.email || '';
+            foundClasses = data.classes || '';
+            foundSchool = data.school || '';
+
+            setProfile({
+              name: foundName || profile.name,
+              email: foundEmail || profile.email,
+              classes: foundClasses || profile.classes,
+              school: foundSchool || profile.school,
               avatar: data.avatar || profile.avatar,
-            };
-            setProfile(profileData);
+            });
+
             localStorage.setItem('educakids_user', JSON.stringify({
-              name: profileData.name,
-              email: profileData.email,
+              name: foundName,
+              email: foundEmail,
             }));
+            return;
           }
         } catch {
-          // Tabela profiles pode não existir - ok
+          // Tabela profiles pode não existir - continua para fallback
+        }
+
+        // 3. Fallback: user_metadata (apenas se nada foi encontrado ainda)
+        const metaName = user.user_metadata?.name || '';
+        const metaClasses = user.user_metadata?.classes || '';
+        const metaSchool = user.user_metadata?.school || '';
+
+        if (metaName || metaClasses || metaSchool) {
+          setProfile(prev => ({
+            ...prev,
+            name: metaName || prev.name,
+            email: user.email || prev.email,
+            classes: metaClasses || prev.classes,
+            school: metaSchool || prev.school,
+          }));
         }
       } catch (err) {
         console.error('Erro ao carregar perfil público:', err);
@@ -100,24 +107,35 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     setIsEditing(false);
+
+    // 1. SALVAR NO LOCALSTORAGE IMEDIATAMENTE (sempre funciona)
+    localStorage.setItem('educakids_user', JSON.stringify({
+      name: profile.name,
+      email: profile.email,
+    }));
+
+    // 2. Tentar salvar no Supabase (se a tabela existir)
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Atualizar tabela pública "profiles"
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .upsert({
             id: user.id,
             name: profile.name,
-            email: user.email,
+            email: profile.email,
             classes: profile.classes,
             school: profile.school,
             avatar: profile.avatar,
             updated_at: new Date().toISOString()
           });
+
+        if (error) {
+          console.warn('Tabela profiles pode não existir:', error.message);
+        }
       }
-    } catch (err) {
-      console.error('Erro ao salvar perfil no Supabase:', err);
+    } catch (err: any) {
+      console.warn('Erro ao salvar no Supabase (tabela pode não existir):', err?.message || err);
     }
   };
 

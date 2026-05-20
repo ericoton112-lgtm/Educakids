@@ -11,7 +11,7 @@ export default function HomePage() {
   const [teacherName, setTeacherName] = useState('Professora');
 
   useEffect(() => {
-    // 1. Tentar do localStorage (mais rápido e confiável)
+    // 1. Carregar do localStorage (sempre tem o dado mais recente)
     const stored = localStorage.getItem('educakids_user');
     if (stored) {
       try {
@@ -22,23 +22,13 @@ export default function HomePage() {
       } catch { /* ignore */ }
     }
 
-    // 2. Sobrescrever com dados do Supabase se disponíveis
+    // 2. Buscar dados atualizados do Supabase
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const name = user.user_metadata?.name;
-
-        if (name) {
-          setTeacherName(name);
-          localStorage.setItem('educakids_user', JSON.stringify({
-            name,
-            email: user.email,
-          }));
-          return;
-        }
-
+        // 2a. Tentar profiles table (dados mais recentes)
         try {
           const { data } = await supabase
             .from('profiles')
@@ -52,9 +42,16 @@ export default function HomePage() {
               name: data.name,
               email: user.email,
             }));
+            return;
           }
         } catch {
           // Tabela profiles pode não existir
+        }
+
+        // 2b. Fallback: user_metadata
+        const metaName = user.user_metadata?.name;
+        if (metaName) {
+          setTeacherName(metaName);
         }
       } catch (err) {
         console.error('Erro ao carregar nome:', err);
