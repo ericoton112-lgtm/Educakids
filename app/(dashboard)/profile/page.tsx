@@ -26,34 +26,34 @@ export default function ProfilePage() {
         if (!user) return;
 
         // Tentar buscar da tabela pública "profiles"
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        if (data) {
+          // Sempre carregar dados do user_metadata como base
           setProfile({
-            name: data.name || 'Professora Maria',
-            email: data.email || user.email || 'profa.maria@educakids.com',
-            classes: data.classes || 'Berçário A',
-            school: data.school || 'Colégio Saber',
-            avatar: data.avatar || 'https://picsum.photos/seed/teacher/400'
+            name: user.user_metadata?.name || 'Professora',
+            email: user.email || 'profa@educakids.com',
+            classes: user.user_metadata?.classes || 'Berçário A',
+            school: user.user_metadata?.school || 'Escola',
+            avatar: 'https://picsum.photos/seed/teacher/400'
           });
-        } else {
-          // Fallback seguro caso a tabela profiles ainda não tenha o registro
-          setProfile(prev => ({
-            ...prev,
-            email: user.email || prev.email,
-            name: user.user_metadata?.name || prev.name,
-            classes: user.user_metadata?.classes || prev.classes,
-            school: user.user_metadata?.school || prev.school,
-          }));
-        }
+
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+
+            if (data) {
+              setProfile({
+                name: data.name || profile.name,
+                email: data.email || user.email || profile.email,
+                classes: data.classes || profile.classes,
+                school: data.school || profile.school,
+                avatar: data.avatar || profile.avatar
+              });
+            }
+          } catch {
+            // Tabela profiles pode não existir - dados do user_metadata já foram carregados
+          }
       } catch (err) {
         console.error('Erro ao carregar perfil público:', err);
       }

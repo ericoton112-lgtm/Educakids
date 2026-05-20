@@ -16,17 +16,25 @@ export default function HomePage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Tentar carregar da tabela pública
-        const { data } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', user.id)
-          .single();
+        let profileName = user.user_metadata?.name || '';
 
-        if (data && data.name) {
-          setTeacherName(data.name);
-        } else if (user.user_metadata?.name) {
-          setTeacherName(user.user_metadata.name);
+        if (profileName) {
+          setTeacherName(profileName);
+          return;
+        }
+
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+
+          if (data?.name) {
+            setTeacherName(data.name);
+          }
+        } catch {
+          // Tabela profiles pode não existir - mantém fallback do user_metadata
         }
       } catch (err) {
         console.error('Erro ao carregar nome:', err);
