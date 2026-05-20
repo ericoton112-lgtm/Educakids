@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
     
     typesString = Array.isArray(activityType) ? activityType.join(" e ") : (activityType || "");
 
-    if (!process.env.GEMINI_API_KEY) {
+    const rawApiKey = process.env.GEMINI_API_KEY || "";
+    const apiKey = rawApiKey.replace(/^["']|["']$/g, "").trim();
+
+    if (!apiKey) {
       // Fallback Inteligente (Mock) caso a chave não esteja configurada
       await new Promise(resolve => setTimeout(resolve, 1500));
       const mockResponse = getMockResponse(theme, typesString, ageGroup, difficulty);
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: apiKey,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build',

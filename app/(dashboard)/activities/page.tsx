@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Palette, BookOpen, Brain, Footprints, Bolt, Check, Layers, Clock, AlertCircle, Printer, Trash2, History } from 'lucide-react';
+import { usePrint } from '../../context/PrintContext';
 
 interface Activity {
   title: string;
@@ -28,10 +29,20 @@ interface HistoryItem {
   activity: Activity;
 }
 
+const loadingPhases = [
+  { title: "Despertando a imaginação...", description: "Conectando ao núcleo criativo da IA" },
+  { title: "Mapeando a BNCC...", description: "Garantindo alinhamento com as diretrizes pedagógicas" },
+  { title: "Selecionando materiais...", description: "Escolhendo itens simples, seguros e acessíveis" },
+  { title: "Escrevendo o passo a passo...", description: "Criando instruções lúdicas claras e engajadoras" },
+  { title: "Elaborando folha do aluno...", description: "Esboçando questões interativas e espaços de desenho" },
+  { title: "Polindo e refinando...", description: "Finalizando formatação e adequação de faixa etária" }
+];
+
 export default function ActivitiesPage() {
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [printProgress, setPrintProgress] = useState('');
+  const { isPrinting, printProgress, startPrintJob } = usePrint();
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState({
     ageGroup: 'Crianças Pequenas (4 anos a 5 anos e 11 meses)',
@@ -56,8 +67,28 @@ export default function ActivitiesPage() {
 
   const handleGenerate = async () => {
     setLoading(true);
+    setLoadingProgress(0);
+    setCurrentPhaseIndex(0);
     setError(null);
     setActivity(null);
+
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 98) return 98;
+        const step = Math.floor(Math.random() * 2) + 1;
+        const nextProgress = Math.min(prev + step, 98);
+
+        if (nextProgress < 15) setCurrentPhaseIndex(0);
+        else if (nextProgress < 35) setCurrentPhaseIndex(1);
+        else if (nextProgress < 55) setCurrentPhaseIndex(2);
+        else if (nextProgress < 72) setCurrentPhaseIndex(3);
+        else if (nextProgress < 88) setCurrentPhaseIndex(4);
+        else setCurrentPhaseIndex(5);
+
+        return nextProgress;
+      });
+    }, 150);
+
     try {
       const previousTitlesAndThemes = historyList.map(item => `${item.activity.title} (${item.formData.theme})`);
 
@@ -78,6 +109,13 @@ export default function ActivitiesPage() {
       if (data.error) {
         throw new Error(data.error);
       }
+
+      // Finalize progress smoothly before showing the result
+      clearInterval(progressInterval);
+      setLoadingProgress(100);
+      setCurrentPhaseIndex(5);
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       setActivity(data);
 
       // Save to local storage history
@@ -94,6 +132,7 @@ export default function ActivitiesPage() {
       console.error(err);
       setError("Ops! Não foi possível gerar a atividade agora. Verifique sua conexão ou tente novamente mais tarde.");
     } finally {
+      clearInterval(progressInterval);
       setLoading(false);
     }
   };
@@ -213,14 +252,26 @@ export default function ActivitiesPage() {
           whileTap={{ scale: 0.95 }}
           onClick={handleGenerate}
           disabled={loading}
-          className="w-full py-5 bg-primary text-on-primary rounded-full font-sans font-bold flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-70 transition-all text-lg"
+          className={`w-full py-5 text-on-primary rounded-full font-sans font-bold flex items-center justify-center gap-3 shadow-lg transition-all text-lg relative overflow-hidden ${
+            loading 
+              ? 'bg-gradient-to-r from-primary via-secondary to-primary shadow-secondary/15' 
+              : 'bg-primary shadow-primary/20 hover:bg-primary/95'
+          }`}
         >
+          {loading && (
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none"
+            />
+          )}
           {loading ? (
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
           ) : (
             <Bolt size={24} className="fill-current" />
           )}
-          {loading ? 'Processando...' : 'Gerar com IA'}
+          <span>{loading ? `Processando (${loadingProgress}%)` : 'Gerar com IA'}</span>
         </motion.button>
       </div>
 
@@ -234,6 +285,230 @@ export default function ActivitiesPage() {
           >
             <AlertCircle className="shrink-0 mt-0.5" size={20} />
             <p className="font-medium text-sm">{error}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="bg-surface-container-low rounded-3xl border border-outline-variant/30 p-8 space-y-8 shadow-xl relative overflow-hidden"
+          >
+            {/* Top Badge */}
+            <div className="flex justify-center">
+              <div className="bg-primary/10 border border-primary/20 text-primary px-4 py-1.5 rounded-full flex items-center gap-2">
+                <Sparkles size={14} className="animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Criatividade Conectada</span>
+              </div>
+            </div>
+
+            {/* Main title */}
+            <div className="text-center space-y-2">
+              <h3 className="font-sans font-bold text-2xl text-on-surface">Educakids AI está criando...</h3>
+              <p className="text-sm text-on-surface-variant max-w-md mx-auto">
+                Estamos preparando uma atividade estruturada com objetivos da BNCC alinhados e folha de exercícios personalizada.
+              </p>
+            </div>
+
+            {/* Glowing Orb Centerpiece */}
+            <div className="relative w-40 h-40 mx-auto flex items-center justify-center my-6">
+              {/* Background Glow Blobs */}
+              <motion.div
+                animate={{
+                  scale: [1, 1.25, 0.95, 1.15, 1],
+                  rotate: [0, 90, 180, 270, 360],
+                  borderRadius: ["40% 60% 60% 40% / 40% 50% 50% 60%", "60% 40% 30% 70% / 60% 30% 70% 40%", "40% 60% 60% 40% / 40% 50% 50% 60%"]
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-secondary/30 blur-2xl"
+              />
+              <motion.div
+                animate={{
+                  scale: [1.15, 0.95, 1.25, 1, 1.15],
+                  rotate: [360, 270, 180, 90, 0],
+                  borderRadius: ["50% 50% 30% 70% / 50% 60% 40% 60%", "30% 60% 70% 40% / 50% 30% 60% 40%", "50% 50% 30% 70% / 50% 60% 40% 60%"]
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="absolute inset-0 bg-gradient-to-bl from-tertiary-container/20 to-primary-container/20 blur-2xl"
+              />
+              
+              {/* Center Icon Container */}
+              <motion.div
+                animate={{
+                  y: [0, -8, 0],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="relative z-10 w-24 h-24 rounded-2xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xl flex items-center justify-center"
+              >
+                {/* Moving color borders */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-tertiary/10 rounded-2xl animate-pulse" />
+                
+                {/* Animated Icon depending on phase index */}
+                {currentPhaseIndex === 0 && <Sparkles className="w-10 h-10 text-primary animate-pulse relative z-10" />}
+                {currentPhaseIndex === 1 && <Brain className="w-10 h-10 text-secondary relative z-10" />}
+                {currentPhaseIndex === 2 && <Palette className="w-10 h-10 text-tertiary relative z-10" />}
+                {currentPhaseIndex === 3 && <BookOpen className="w-10 h-10 text-primary relative z-10" />}
+                {currentPhaseIndex === 4 && <Footprints className="w-10 h-10 text-secondary relative z-10" />}
+                {currentPhaseIndex === 5 && <Check className="w-10 h-10 text-emerald-500 animate-bounce relative z-10" />}
+              </motion.div>
+              
+              {/* Floating Particles */}
+              {[...Array(6)].map((_, i) => {
+                const delay = i * 0.4;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0, y: 0, x: 0 }}
+                    animate={{
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.5, 1, 0.8, 0],
+                      y: [0, -40, -60],
+                      x: [0, (i % 2 === 0 ? 30 : -30), (i % 2 === 0 ? 50 : -50)]
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      delay: delay,
+                      ease: "easeOut"
+                    }}
+                    className="absolute w-2.5 h-2.5 rounded-full bg-primary-container"
+                    style={{
+                      left: 'calc(50% - 5px)',
+                      top: 'calc(50% - 5px)',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Split layout: Progress checklist & Skeleton preview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-4 border-t border-outline-variant/20">
+              {/* Left: Progress Checklist */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-black uppercase tracking-wider text-on-surface-variant px-1">
+                    <span>Progresso de Geração</span>
+                    <span>{loadingProgress}%</span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden border border-outline-variant/10">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-primary via-secondary to-primary-container"
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${loadingProgress}%` }}
+                      transition={{ ease: "easeOut", duration: 0.2 }}
+                    />
+                  </div>
+                </div>
+                
+                {/* Phase Checklist Items */}
+                <div className="bg-surface-container-lowest/50 border border-outline-variant/20 rounded-2xl p-5 space-y-4">
+                  {loadingPhases.map((phase, idx) => {
+                    const isCompleted = idx < currentPhaseIndex;
+                    const isActive = idx === currentPhaseIndex;
+                    const isPending = idx > currentPhaseIndex;
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-start gap-3.5 transition-all duration-300 ${
+                          isPending ? 'opacity-35 scale-98' : 'opacity-100'
+                        }`}
+                      >
+                        <div className="mt-0.5 shrink-0">
+                          {isCompleted ? (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center"
+                            >
+                              <Check size={12} className="stroke-[3]" />
+                            </motion.div>
+                          ) : isActive ? (
+                            <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border-2 border-outline-variant/40" />
+                          )}
+                        </div>
+                        <div className="text-left space-y-0.5">
+                          <h4 className={`text-xs font-bold ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
+                            {phase.title}
+                          </h4>
+                          {isActive && (
+                            <motion.p
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-[10px] text-on-surface-variant/80 font-medium leading-relaxed"
+                            >
+                              {phase.description}
+                            </motion.p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right: Skeleton Worksheet Preview */}
+              <div className="bg-surface-container-lowest/80 border border-outline-variant/30 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-inner h-80 flex flex-col justify-between">
+                {/* Shimmer Overlay */}
+                <motion.div
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "100%" }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent pointer-events-none"
+                />
+                
+                <div className="space-y-4">
+                  {/* Header mockup */}
+                  <div className="border-b border-outline-variant/30 pb-3 space-y-2">
+                    <div className="flex justify-between">
+                      <div className="h-2 bg-surface-container-high rounded w-20" />
+                      <div className="h-2 bg-surface-container-high rounded w-16" />
+                    </div>
+                    <div className="h-4 bg-surface-container-high rounded w-3/4" />
+                  </div>
+                  
+                  {/* Content mock lines */}
+                  <div className="space-y-2.5">
+                    <div className="h-2 bg-surface-container-high rounded w-1/4" />
+                    <div className="h-3 bg-surface-container-high rounded w-full" />
+                    <div className="h-3 bg-surface-container-high rounded w-5/6" />
+                  </div>
+                  
+                  {/* Image/exercise block mockup */}
+                  <div className="border border-dashed border-outline-variant/40 rounded-xl p-3 bg-surface-container-low/30 space-y-2">
+                    <div className="h-2.5 bg-surface-container-high rounded w-1/2 animate-pulse" />
+                    <div className="h-12 bg-surface-container-high/40 border border-dashed border-outline-variant/20 rounded flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-on-surface-variant/20 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center text-[8px] text-on-surface-variant/50 font-bold uppercase tracking-widest border-t border-outline-variant/30 pt-3">
+                  <span>Folha do Aluno</span>
+                  <span className="flex items-center gap-1"><Sparkles size={8} /> Esboçando Conteúdo</span>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -330,199 +605,9 @@ export default function ActivitiesPage() {
                   
                   <button 
                     disabled={isPrinting}
-                    onClick={async () => {
-                      setIsPrinting(true);
-
-                      const isDrawingQ = (q: string) => /desenhe|pinte|colorir|colore|ilustre/i.test(q);
-
-                      const getPromptText = (question: string, index: number) => {
-                        if (activity?.illustrationPrompts && activity.illustrationPrompts[index]) {
-                          return `simple cute black and white coloring page for children, ${activity.illustrationPrompts[index]}, thick bold outlines, no shading, cartoon style, printable worksheet`;
-                        }
-
-                        const cleanSubject = question
-                          .replace(/^\d+[\.\)\s]*/,'')
-                          .replace(/desenhe|pinte|colorir|colore|ilustre|no espaço abaixo|abaixo[:\s]*/gi, '')
-                          .replace(/[:\/\?\\#]/g, ' ')
-                          .replace(/\s+/g,' ').trim().substring(0, 60);
-
-                        const cleanTitle = activity!.title
-                          .replace(/[:\/\?\\#]/g, ' ')
-                          .replace(/\s+/g,' ').trim();
-
-                        return `black and white coloring page, simple drawing of ${cleanSubject}, ${cleanTitle}, cartoon style, thick outlines, isolated on white background`;
-                      };
-
-                      const getProxyUrl = (prompt: string, seed: number, model: string = 'flux') => {
-                        return `/api/image-proxy?prompt=${encodeURIComponent(prompt)}&seed=${seed}&model=${model}`;
-                      };
-
-                      const questions = activity!.studentQuestions || [];
-
-                      // Track valid images to prevent broken icons in the final PDF
-                      const validImageUrls = new Map<string, string>();
-                      
-                      const drawingQuestions = questions.map((q, i) => ({ q, index: i })).filter(item => isDrawingQ(item.q));
-                      if (drawingQuestions.length > 0) {
-                        setPrintProgress(`Iniciando geração (0/${drawingQuestions.length})...`);
-                        setError(null); // Limpa erros anteriores
-                        for (let k = 0; k < drawingQuestions.length; k++) {
-                          const item = drawingQuestions[k];
-                          const prompt = getPromptText(item.q, item.index);
-                          const url = getProxyUrl(prompt, item.index + 1, 'flux');
-                          
-                          let success = false;
-                          let attempts = 3;
-                          
-                          while (attempts > 0 && !success) {
-                            setPrintProgress(`Gerando imagem ${k + 1} de ${drawingQuestions.length}...${attempts < 3 ? ` (Tentativa ${4 - attempts}/3)` : ''}`);
-                            
-                            success = await new Promise<boolean>(async (resolve) => {
-                              try {
-                                const controller = new AbortController();
-                                const timeoutId = setTimeout(() => controller.abort(), 95000); // 95s timeout
-                                
-                                const res = await fetch(url, { signal: controller.signal });
-                                clearTimeout(timeoutId);
-                                
-                                if (res.ok) {
-                                  await res.blob(); // Baixa os bytes para o cache do navegador
-                                  resolve(true);
-                                } else {
-                                  resolve(false);
-                                }
-                              } catch (err) {
-                                resolve(false);
-                              }
-                            });
-
-                            if (!success) {
-                              attempts--;
-                              if (attempts > 0) {
-                                setPrintProgress(`Servidor ocupado. Reabastecendo em 3s...`);
-                                await new Promise((resolve) => setTimeout(resolve, 3000));
-                              }
-                            }
-                          }
-
-                          if (success) {
-                            validImageUrls.set(item.q, url);
-                          } else {
-                            // Se falhar após todas as tentativas, cancelamos a impressão para não gerar folha em branco
-                            setError("O servidor de ilustrações da IA está muito congestionado. Por favor, aguarde alguns segundos e clique em Imprimir novamente.");
-                            setIsPrinting(false);
-                            return;
-                          }
-
-                          // Aguarda 2 segundos antes de iniciar a próxima requisição para liberar o túnel de IP
-                          if (k < drawingQuestions.length - 1) {
-                            await new Promise((resolve) => setTimeout(resolve, 2000));
-                          }
-                        }
-                      }
-                      setPrintProgress('Formatando folha para impressão...');
-
-                      const questionsHtml = questions.map((q, i) => {
-                        const isDrawing = isDrawingQ(q);
-                        const imgUrl = validImageUrls.get(q);
-                        
-                        return `
-                          <div class="question-block">
-                            <div class="question-text">${q}</div>
-                            ${isDrawing
-                              ? (imgUrl 
-                                  ? `<img src="${imgUrl}" class="drawing-img" alt="Ilustracao da atividade" />`
-                                  : `<div class="drawing-box"></div>`)
-                              : `<div class="answer-line"></div><div class="answer-line"></div>`
-                            }
-                          </div>`;
-                      }).join('');
-
-                      // Create a hidden iframe on the same origin (prevents CORS and mixed content blocks in about:blank)
-                      const iframe = document.createElement('iframe');
-                      iframe.style.position = 'fixed';
-                      iframe.style.width = '0';
-                      iframe.style.height = '0';
-                      iframe.style.border = 'none';
-                      iframe.style.zIndex = '-9999';
-                      document.body.appendChild(iframe);
-
-                      // Message handler for clean up
-                      const handleMessage = (event: MessageEvent) => {
-                        if (event.data === 'print-done') {
-                          setIsPrinting(false);
-                          if (document.body.contains(iframe)) {
-                            document.body.removeChild(iframe);
-                          }
-                          window.removeEventListener('message', handleMessage);
-                        }
-                      };
-                      window.addEventListener('message', handleMessage);
-
-                      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
-                      if (iframeDoc) {
-                        iframeDoc.write(`
-                          <html>
-                            <head>
-                              <title>Atividade - ${activity!.title}</title>
-                              <style>
-                                @page { margin: 2cm; }
-                                body { font-family: 'Segoe UI', system-ui, sans-serif; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                                .student-header { margin-bottom: 30px; border: 1px solid #ccc; padding: 18px 20px; border-radius: 8px; }
-                                .student-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
-                                .student-row:last-child { margin-bottom: 0; }
-                                .header-title { text-align: center; border-bottom: 2px solid #222; padding-bottom: 15px; margin-bottom: 30px; }
-                                .header-title h1 { font-size: 22px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 1px; }
-                                .meta { font-size: 11px; color: #e67e22; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; }
-                                .question-block { margin-bottom: 35px; page-break-inside: avoid; }
-                                .question-text { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #222; }
-                                .answer-line { border-bottom: 1px dashed #999; height: 35px; margin-bottom: 8px; }
-                                .drawing-img { max-width: 100%; height: auto; border: 2px dashed #ccc; border-radius: 10px; padding: 8px; box-sizing: border-box; display: block; margin: 8px auto 0; }
-                                .drawing-box { border: 2px dashed #ccc; height: 200px; border-radius: 10px; margin-top: 8px; }
-                                .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 20px; text-transform: uppercase; letter-spacing: 2px; }
-                              </style>
-                            </head>
-                            <body>
-                              <div class="student-header">
-                                <div class="student-row">
-                                  <span style="flex:1;"><strong>NOME:</strong> _______________________________________________</span>
-                                </div>
-                                <div class="student-row">
-                                  <span style="width:50%;"><strong>TURMA:</strong> _________________</span>
-                                  <span style="width:50%;"><strong>DATA:</strong> ____ / ____ / ________</span>
-                                </div>
-                              </div>
-                              <div class="header-title">
-                                <h1>${activity!.title}</h1>
-                                <div class="meta">Atividade ${activity!.type} de Artes e Descoberta</div>
-                              </div>
-                              <div class="questions">${questionsHtml}</div>
-                              <div class="footer">Folha de Atividade · Gerada por IA · Educakids</div>
-                              <script>
-                                var imgs = Array.from(document.querySelectorAll('.drawing-img'));
-                                var doPrint = function() {
-                                  setTimeout(function() {
-                                    window.print();
-                                    window.parent.postMessage('print-done', '*');
-                                  }, 500);
-                                };
-                                if (imgs.length === 0) {
-                                  doPrint();
-                                } else {
-                                  var done = 0;
-                                  var check = function() { if (++done >= imgs.length) doPrint(); };
-                                  imgs.forEach(function(img) {
-                                    if (img.complete) { check(); }
-                                    else { img.onload = check; img.onerror = check; }
-                                  });
-                                  // Fallback limit: 15s (since already cached)
-                                  setTimeout(doPrint, 15000);
-                                }
-                              </script>
-                            </body>
-                          </html>
-                        `);
-                        iframeDoc.close();
+                    onClick={() => {
+                      if (activity) {
+                        startPrintJob(activity);
                       }
                     }}
                     className={`absolute bottom-5 left-1/2 -translate-x-1/2 ${isPrinting ? 'bg-surface-container-high text-on-surface' : 'bg-primary text-on-primary'} px-5 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-2xl hover:scale-105 active:scale-95 transition-all z-20 ${isPrinting ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} translate-y-4 group-hover:translate-y-0 w-max`}
