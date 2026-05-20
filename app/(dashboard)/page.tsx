@@ -11,15 +11,31 @@ export default function HomePage() {
   const [teacherName, setTeacherName] = useState('Professora');
 
   useEffect(() => {
+    // 1. Tentar do localStorage (mais rápido e confiável)
+    const stored = localStorage.getItem('educakids_user');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.name) {
+          setTeacherName(parsed.name);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 2. Sobrescrever com dados do Supabase se disponíveis
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        let profileName = user.user_metadata?.name || '';
+        const name = user.user_metadata?.name;
 
-        if (profileName) {
-          setTeacherName(profileName);
+        if (name) {
+          setTeacherName(name);
+          localStorage.setItem('educakids_user', JSON.stringify({
+            name,
+            email: user.email,
+          }));
           return;
         }
 
@@ -32,9 +48,13 @@ export default function HomePage() {
 
           if (data?.name) {
             setTeacherName(data.name);
+            localStorage.setItem('educakids_user', JSON.stringify({
+              name: data.name,
+              email: user.email,
+            }));
           }
         } catch {
-          // Tabela profiles pode não existir - mantém fallback do user_metadata
+          // Tabela profiles pode não existir
         }
       } catch (err) {
         console.error('Erro ao carregar nome:', err);

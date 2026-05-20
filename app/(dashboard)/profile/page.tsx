@@ -20,40 +20,68 @@ export default function ProfilePage() {
   const supabase = createClient();
 
   useEffect(() => {
+    // 1. Carregar do localStorage primeiro (rápido e confiável)
+    const stored = localStorage.getItem('educakids_user');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setProfile(prev => ({
+          ...prev,
+          name: parsed.name || prev.name,
+          email: parsed.email || prev.email,
+        }));
+      } catch { /* ignore */ }
+    }
+
+    // 2. Sobrescrever com dados do Supabase se disponíveis
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Tentar buscar da tabela pública "profiles"
-          // Sempre carregar dados do user_metadata como base
-          setProfile({
-            name: user.user_metadata?.name || 'Professora',
-            email: user.email || 'profa@educakids.com',
-            classes: user.user_metadata?.classes || 'Berçário A',
-            school: user.user_metadata?.school || 'Escola',
-            avatar: 'https://picsum.photos/seed/teacher/400'
-          });
+        const userName = user.user_metadata?.name || '';
+        const userEmail = user.email || '';
 
-          try {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', user.id)
-              .single();
+        // Atualizar com user_metadata
+        if (userName || userEmail) {
+          setProfile(prev => ({
+            ...prev,
+            name: userName || prev.name,
+            email: userEmail || prev.email,
+            classes: user.user_metadata?.classes || prev.classes,
+            school: user.user_metadata?.school || prev.school,
+          }));
+          localStorage.setItem('educakids_user', JSON.stringify({
+            name: userName,
+            email: userEmail,
+          }));
+        }
 
-            if (data) {
-              setProfile({
-                name: data.name || profile.name,
-                email: data.email || user.email || profile.email,
-                classes: data.classes || profile.classes,
-                school: data.school || profile.school,
-                avatar: data.avatar || profile.avatar
-              });
-            }
-          } catch {
-            // Tabela profiles pode não existir - dados do user_metadata já foram carregados
+        // Tentar dados da tabela profiles (sobrescreve se existir)
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (data) {
+            const profileData = {
+              name: data.name || profile.name,
+              email: data.email || user.email || profile.email,
+              classes: data.classes || profile.classes,
+              school: data.school || profile.school,
+              avatar: data.avatar || profile.avatar,
+            };
+            setProfile(profileData);
+            localStorage.setItem('educakids_user', JSON.stringify({
+              name: profileData.name,
+              email: profileData.email,
+            }));
           }
+        } catch {
+          // Tabela profiles pode não existir - ok
+        }
       } catch (err) {
         console.error('Erro ao carregar perfil público:', err);
       }

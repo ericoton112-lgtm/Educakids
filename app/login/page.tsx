@@ -28,27 +28,43 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        // Salvar dados do usuário no localStorage
+        if (data?.user) {
+          localStorage.setItem('educakids_user', JSON.stringify({
+            name: data.user.user_metadata?.name || email.split('@')[0],
+            email: data.user.email || email,
+          }));
+        }
         
         router.push('/');
         router.refresh();
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              name: fullName || 'Professora Maria',
+              name: fullName || 'Professora',
               classes: teachingSegment || 'Berçário A',
-              school: schoolName || 'Colégio Saber',
+              school: schoolName || 'Escola',
             }
           }
         });
         if (error) throw error;
+
+        // Salvar dados do cadastro no localStorage imediatamente
+        if (data?.user) {
+          localStorage.setItem('educakids_user', JSON.stringify({
+            name: fullName || 'Professora',
+            email: email,
+          }));
+        }
         
         alert('Cadastro realizado com sucesso! Você já pode entrar.');
         setIsLogin(true);
