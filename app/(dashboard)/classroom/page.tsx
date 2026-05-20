@@ -36,6 +36,24 @@ export default function ClassroomPage() {
 
   // Load from Supabase on mount
   useEffect(() => {
+    // Carregar do LocalStorage primeiro como fallback/inicialização offline imediata
+    const localStuds = localStorage.getItem('educakids_students');
+    if (localStuds) {
+      try {
+        setStudents(JSON.parse(localStuds));
+      } catch (e) {
+        console.error('Erro ao ler estudantes do localStorage', e);
+      }
+    }
+    const localSupplies = localStorage.getItem('educakids_supplies');
+    if (localSupplies) {
+      try {
+        setSupplies(JSON.parse(localSupplies));
+      } catch (e) {
+        console.error('Erro ao ler suprimentos do localStorage', e);
+      }
+    }
+
     const loadStudents = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -59,6 +77,7 @@ export default function ClassroomPage() {
             color: s.color
           }));
           setStudents(mapped);
+          localStorage.setItem('educakids_students', JSON.stringify(mapped));
         }
       } catch (err) {
         console.error('Erro ao buscar alunos do Supabase. Usando dados locais.', err);
@@ -97,6 +116,7 @@ export default function ClassroomPage() {
   const toggleBehavior = async (id: string, behavior: 'smile' | 'meh') => {
     setStudents(prev => {
       const updated = prev.map(s => s.id === id ? { ...s, behavior } : s);
+      localStorage.setItem('educakids_students', JSON.stringify(updated));
       const student = updated.find(s => s.id === id);
       if (student) {
         syncStudentToDb(student);
@@ -110,6 +130,7 @@ export default function ClassroomPage() {
       const newSupplies = [...prev];
       const item = newSupplies[catIndex].items[itemIndex];
       item.status = item.status === 'completed' ? 'ok' : 'completed';
+      localStorage.setItem('educakids_supplies', JSON.stringify(newSupplies));
       return newSupplies;
     });
   };
@@ -131,12 +152,17 @@ export default function ClassroomPage() {
         tags: []
       };
 
-      setStudents(prev => [...prev, newStudent]);
+      setStudents(prev => {
+        const updated = [...prev, newStudent];
+        localStorage.setItem('educakids_students', JSON.stringify(updated));
+        return updated;
+      });
       await syncStudentToDb(newStudent);
     } else {
       setSupplies(prev => {
         const newSupplies = [...prev];
         newSupplies[0].items.push({ name: newItemName, val: 'Novo', status: 'ok' });
+        localStorage.setItem('educakids_supplies', JSON.stringify(newSupplies));
         return newSupplies;
       });
     }
@@ -237,7 +263,11 @@ export default function ClassroomPage() {
                     value={s.notes}
                     onChange={(e) => {
                       const text = e.target.value;
-                      setStudents(prev => prev.map(stud => stud.id === s.id ? { ...stud, notes: text } : stud));
+                      setStudents(prev => {
+                        const updated = prev.map(stud => stud.id === s.id ? { ...stud, notes: text } : stud);
+                        localStorage.setItem('educakids_students', JSON.stringify(updated));
+                        return updated;
+                      });
                     }}
                     onBlur={async () => {
                       const updatedStudent = students.find(stud => stud.id === s.id);

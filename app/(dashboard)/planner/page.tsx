@@ -79,6 +79,19 @@ export default function PlannerPage() {
 
   // Load from Supabase
   useEffect(() => {
+    // Carregar do LocalStorage primeiro como fallback/inicialização offline imediata
+    const localPlan = localStorage.getItem('educakids_planner');
+    if (localPlan) {
+      try {
+        const parsed = JSON.parse(localPlan);
+        if (parsed.theme) setTheme(parsed.theme);
+        if (parsed.goals) setGoals(parsed.goals);
+        if (parsed.days) setDays(parsed.days);
+      } catch (e) {
+        console.error('Erro ao ler planejador do localStorage', e);
+      }
+    }
+
     const loadPlanner = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -98,6 +111,7 @@ export default function PlannerPage() {
           setTheme(data.theme);
           setGoals(data.goals);
           
+          let parsedDays = data.days;
           if (data.days && data.days.length < 5) {
             const mergedDays = [...data.days];
             const defaultDays = [
@@ -161,10 +175,14 @@ export default function PlannerPage() {
             for (let idx = data.days.length; idx < 5; idx++) {
               mergedDays.push(defaultDays[idx]);
             }
-            setDays(mergedDays);
-          } else {
-            setDays(data.days);
+            parsedDays = mergedDays;
           }
+          setDays(parsedDays);
+          localStorage.setItem('educakids_planner', JSON.stringify({
+            theme: data.theme,
+            goals: data.goals,
+            days: parsedDays
+          }));
         }
       } catch (err) {
         console.error('Erro ao buscar do Supabase. Usando dados locais.', err);
@@ -207,6 +225,9 @@ export default function PlannerPage() {
   const handleSave = async () => {
     setIsEditing(false);
     setLoading(true);
+    
+    // Salvar localmente primeiro para garantir persistência instantânea/offline
+    localStorage.setItem('educakids_planner', JSON.stringify({ theme, goals, days }));
     
     try {
       const { data: { user } } = await supabase.auth.getUser();

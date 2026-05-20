@@ -54,6 +54,13 @@ export async function POST(req: NextRequest) {
             "3. O que usamos hoje para fazer a lenha da nossa fogueira?",
             "4. Qual comida típica de Festa Junina você acha mais gostosa?",
             "5. Desenhe você e seus amigos dançando quadrilha."
+          ],
+          imagePrompts: [
+            "a cute campfire drawn with popsicle sticks",
+            "a cute hanging banner of triangular party flags",
+            "",
+            "",
+            "happy children dancing the traditional Brazilian quadrilha dance"
           ]
         };
       } else {
@@ -90,6 +97,13 @@ export async function POST(req: NextRequest) {
             "3. Quantos materiais diferentes você usou durante a atividade? Escreva o número.",
             "4. Quais foram as cores principais que você usou ou viu hoje?",
             "5. Desenhe livremente algo que você quer mostrar para os seus pais."
+          ],
+          imagePrompts: [
+            "",
+            `a cute children drawing of ${theme || 'our theme'}`,
+            "",
+            "",
+            "a cute child drawing"
           ]
         };
       }
@@ -120,6 +134,8 @@ export async function POST(req: NextRequest) {
     - Para questões de pintura/desenho, use verbos como "Desenhe" ou "Pinte" no início da frase.
     - Para questões de resposta escrita, formule perguntas diretas sem instruções de desenho.
     - O campo 'type' deve ser curto, ex: "Atividade Interna" ou "Atividade Sensorial".
+    - A propriedade 'imagePrompts' deve ser uma lista contendo exatamente o mesmo número de elementos que 'studentQuestions'. Para cada pergunta em 'studentQuestions' que exigir desenho ou pintura (como "Pinte a sua bandeirinha..."), escreva um prompt de imagem em INGLÊS que descreva apenas o objeto a ser desenhado de forma simples (ex: se a pergunta for "Desenhe uma fogueira e bandeirinhas", o prompt correspondente deve ser "a campfire with festive flags"). Para perguntas que não exigirem desenho (resposta escrita), coloque uma string vazia "".
+    - Muito importante: Se o tema da atividade envolver "Festa Junina" ou "São João", certifique-se de traduzir os termos de forma culturalmente fiel para o inglês: use "traditional Brazilian Festa Junina paper lantern ornament" para balão, "Festa Junina bunting flags decoration" para bandeirinhas, e "cute children wearing traditional Brazilian Festa Junina caipira clothing" para personagens típicos, evitando balões de gás tradicionais ou bandeiras nacionais.
 
     Responda SOMENTE com JSON válido seguindo este esquema:
     {
@@ -132,7 +148,8 @@ export async function POST(req: NextRequest) {
       "steps": [
         { "title": "Título do passo", "content": "Explicação clara e objetiva do que fazer" }
       ],
-      "studentQuestions": ["Pergunta ou comando 1", "Pergunta ou comando 2"]
+      "studentQuestions": ["Pergunta ou comando 1", "Pergunta ou comando 2"],
+      "imagePrompts": ["english prompt 1 or empty", "english prompt 2 or empty"]
     }`;
 
     const response = await ai.models.generateContent({
@@ -158,7 +175,8 @@ export async function POST(req: NextRequest) {
         title: s?.title || "Passo",
         content: s?.content || ""
       })) : [],
-      studentQuestions: Array.isArray(data.studentQuestions) ? data.studentQuestions : []
+      studentQuestions: Array.isArray(data.studentQuestions) ? data.studentQuestions : [],
+      imagePrompts: Array.isArray(data.imagePrompts) ? data.imagePrompts : []
     };
 
     return NextResponse.json(parsedData);
