@@ -571,20 +571,23 @@ export default function ActivitiesPage() {
                       <p className="text-[9px] font-bold text-on-surface mb-2">Questões da Folha do Aluno:</p>
                       <div className="space-y-3">
                         {(activity.studentQuestions || []).slice(0, 3).map((q, i) => {
-                          const isDraw = /desenhe|pinte|colorir/i.test(q);
+                          const hasIllustration = !!(activity.illustrationPrompts?.[i]);
+                          const displayText = hasIllustration
+                            ? q.replace(/^[\d\.\s]*(Desenhe|desenhe)/, '$& (pinte o desenho)')
+                                .replace(/^[\d\.\s]*(Desenhe|desenhe)/, (m) => m.replace(/Desenhe|desenhe/, 'Pinte'))
+                            : q;
                           return (
                            <div key={i}>
-                             <p className="text-[9px] text-on-surface-variant font-medium line-clamp-1">{q}</p>
-                             {isDraw ? (
-                               <div className="border border-dashed border-primary/30 h-6 w-full rounded flex items-center justify-center bg-primary/5">
-                                 <span className="text-[7px] text-primary font-bold">🎨 Ilustração IA inclusa</span>
-                               </div>
-                             ) : (
-                               <>
-                                 <div className="border-b border-dashed border-outline-variant/50 h-3 w-full"></div>
-                                 <div className="border-b border-dashed border-outline-variant/50 h-3 w-full"></div>
-                               </>
-                             )}
+                              <p className="text-[9px] text-on-surface-variant font-medium line-clamp-1">{displayText}</p>
+                              {hasIllustration ? (
+                                <div className="border border-dashed border-primary/30 h-6 w-full rounded flex items-center justify-center bg-primary/5">
+                                  <span className="text-[7px] text-primary font-bold">🎨 Ilustração para colorir</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="border-b border-dashed border-outline-variant/50 h-6 w-full"></div>
+                                </>
+                              )}
                            </div>
                           );
                         })}

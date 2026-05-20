@@ -145,13 +145,22 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
 
       setPrintProgress('Formatando folha para impressão...');
 
+      const fixQuestionText = (q: string, idx: number) => {
+        const hasImg = !!activity.illustrationPrompts?.[idx];
+        if (hasImg && /desenhe/i.test(q)) {
+          return q.replace(/^(\d+[\.\)\s]*)(Desenhe|desenhe)/, '$1Pinte');
+        }
+        return q;
+      };
+
       const questionsHtml = questions.map((q, i) => {
         const isDrawing = isDrawingQ(q);
         const imgUrl = validImageUrls.get(q);
+        const displayText = fixQuestionText(q, i);
         
         return `
           <div class="question-block">
-            <div class="question-text">${q}</div>
+            <div class="question-text">${displayText}</div>
             ${isDrawing
               ? (imgUrl 
                   ? `<img src="${imgUrl}" class="drawing-img" alt="Ilustracao da atividade" />`
