@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookMarked, Mail, Lock, LogIn, Chrome, ShieldCheck, RefreshCw, Loader2, UserPlus, User, GraduationCap, Building } from 'lucide-react';
+import { BookMarked, Mail, Lock, LogIn, Chrome, Loader2, UserPlus, User, GraduationCap, Building } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import InstallPrompt from '../components/InstallPrompt';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -87,6 +88,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-5 relative overflow-hidden">
+      <InstallPrompt />
       <div className="fixed top-20 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 translate-x-1/2"></div>
       <div className="fixed bottom-0 left-0 w-80 h-80 bg-secondary-container/10 rounded-full blur-3xl -z-10 -translate-x-1/2 translate-y-1/2"></div>
 
@@ -248,16 +250,7 @@ export default function LoginPage() {
           </p>
         </motion.div>
 
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="bg-primary-container/20 p-4 rounded-3xl flex flex-col items-center text-center gap-2 border border-primary/10">
-            <ShieldCheck size={24} className="text-primary" />
-            <span className="text-[10px] font-black text-on-primary-container uppercase tracking-wider">Espaço Seguro</span>
-          </div>
-          <div className="bg-secondary-container/20 p-4 rounded-3xl flex flex-col items-center text-center gap-2 border border-secondary/10">
-            <RefreshCw size={24} className="text-secondary" />
-            <span className="text-[10px] font-black text-on-secondary-container uppercase tracking-wider">Sincronização</span>
-          </div>
-        </div>
+
       </main>
     </div>
   );

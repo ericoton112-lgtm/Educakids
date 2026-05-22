@@ -22,6 +22,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import CreatePlannerModal from '@/app/components/modals/CreatePlannerModal';
 import { 
   startOfWeek, 
   endOfWeek, 
@@ -195,8 +196,8 @@ function getTipsForTheme(themeStr: string) {
 
 export default function PlannerPage() {
   const supabase = createClient();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 4, 20)); // Inicializa na data atual do sistema (Maio/2026)
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2026, 4, 20));
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -213,12 +214,6 @@ export default function PlannerPage() {
 
   // States do Modal de Criação com IA
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createWeekStart, setCreateWeekStart] = useState(
-    format(startOfWeek(new Date(2026, 4, 20), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  );
-  const [createTheme, setCreateTheme] = useState('');
-  const [createAgeGroup, setCreateAgeGroup] = useState('Crianças Pequenas (4 anos a 5 anos e 11 meses)');
-  const [createGuidelines, setCreateGuidelines] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
@@ -493,8 +488,8 @@ export default function PlannerPage() {
   };
 
   // Lógica de Geração por IA (Gemini)
-  const handleGenerateWithAI = async () => {
-    if (!createTheme.trim()) {
+  const handleGenerateWithAI = async (data: { theme: string; ageGroup: string; guidelines: string; weekStart: string }) => {
+    if (!data.theme.trim()) {
       setGenerationError("Por favor, insira um tema para o planejamento.");
       return;
     }
@@ -507,9 +502,9 @@ export default function PlannerPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          theme: createTheme,
-          ageGroup: createAgeGroup,
-          guidelines: createGuidelines
+          theme: data.theme,
+          ageGroup: data.ageGroup,
+          guidelines: data.guidelines
         })
       });
 
@@ -517,60 +512,38 @@ export default function PlannerPage() {
         throw new Error("Falha na chamada de API.");
       }
 
-      const data = await response.json();
+      const result = await response.json();
       
-      // Parsear a data selecionada do modal
-      const parsedStartDate = new Date(createWeekStart + "T12:00:00");
+      const parsedStartDate = new Date(data.weekStart + "T12:00:00");
       const monday = startOfWeek(parsedStartDate, { weekStartsOn: 1 });
       const weekKey = format(monday, 'yyyy-MM-dd');
 
-      // Mapear os dias retornados preenchendo as datas do calendário correspondentes
-      const updatedDays = data.days.map((d: any, idx: number) => {
+      const updatedDays = result.days.map((d: any, idx: number) => {
         const dayDate = addDays(monday, idx);
-        return {
-          ...d,
-          date: formatDateBr(dayDate)
-        };
+        return { ...d, date: formatDateBr(dayDate) };
       });
 
-      // Atualizar estados locais
-      setTheme(data.theme);
-      setGoals(data.goals);
+      setTheme(result.theme);
+      setGoals(result.goals);
       setDays(updatedDays);
       setSelectedDate(monday);
       setCurrentMonth(monday);
 
-      // Salvar no localStorage e sincronizar
       localStorage.setItem(`educakids_plan_${weekKey}`, JSON.stringify({
-        theme: data.theme,
-        goals: data.goals,
-        days: updatedDays
+        theme: result.theme, goals: result.goals, days: updatedDays
       }));
 
-      // Salva no Supabase de forma assíncrona
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: existing } = await supabase
-          .from('planner_plans')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
+          .from('planner_plans').select('id').eq('user_id', user.id).single();
         if (existing) {
-          await supabase
-            .from('planner_plans')
-            .update({ theme: data.theme, goals: data.goals, days: updatedDays, updated_at: new Date().toISOString() })
-            .eq('user_id', user.id);
+          await supabase.from('planner_plans').update({ theme: result.theme, goals: result.goals, days: updatedDays, updated_at: new Date().toISOString() }).eq('user_id', user.id);
         } else {
-          await supabase
-            .from('planner_plans')
-            .insert({ user_id: user.id, theme: data.theme, goals: data.goals, days: updatedDays });
+          await supabase.from('planner_plans').insert({ user_id: user.id, theme: result.theme, goals: result.goals, days: updatedDays });
         }
       }
 
-      // Resetar form e fechar modal
-      setCreateTheme('');
-      setCreateGuidelines('');
       setIsCreateModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -581,8 +554,8 @@ export default function PlannerPage() {
   };
 
   // Criação manual sem IA
-  const handleCreateManually = () => {
-    const parsedStartDate = new Date(createWeekStart + "T12:00:00");
+  const handleCreateManually = (weekStart: string) => {
+    const parsedStartDate = new Date(weekStart + "T12:00:00");
     const monday = startOfWeek(parsedStartDate, { weekStartsOn: 1 });
     const weekKey = format(monday, 'yyyy-MM-dd');
 
@@ -596,7 +569,7 @@ export default function PlannerPage() {
     localStorage.setItem(`educakids_plan_${weekKey}`, JSON.stringify(manualPlan));
     
     setIsCreateModalOpen(false);
-    setIsEditing(true); // Entra no modo de edição automaticamente
+    setIsEditing(true);
   };
 
   // Dicas pedagógicas dinâmicas baseadas no tema
@@ -1024,171 +997,14 @@ export default function PlannerPage() {
         </div>
       </div>
 
-      {/* Modal de Criação de Planejamento Semanal (IA/Manual) */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !isGenerating && setIsCreateModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Caixa do Modal */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="relative w-full max-w-lg bg-surface-container border border-outline-variant rounded-[32px] p-6 shadow-2xl overflow-hidden z-10 space-y-6 max-h-[90vh] flex flex-col"
-            >
-              <div className="flex items-center justify-between border-b border-outline-variant/50 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Sparkles size={16} />
-                  </div>
-                  <h3 className="font-sans font-bold text-lg text-on-surface">Novo Planejamento Semanal</h3>
-                </div>
-                {!isGenerating && (
-                  <button
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="p-1.5 hover:bg-surface-container-high rounded-full text-on-surface-variant transition-all"
-                  >
-                    <X size={20} />
-                  </button>
-                )}
-              </div>
-
-              {/* Corpo do Form */}
-              <div className="space-y-4 overflow-y-auto flex-1 pr-1 py-1">
-                {generationError && (
-                  <div className="bg-error-container text-on-error-container p-3 rounded-2xl flex items-center gap-2 text-xs font-semibold">
-                    <AlertCircle size={16} className="shrink-0" />
-                    <span>{generationError}</span>
-                  </div>
-                )}
-
-                {/* Seleção de Data */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-secondary">
-                    Semana de Início (Segunda-feira)
-                  </label>
-                  <input
-                    type="date"
-                    value={createWeekStart}
-                    disabled={isGenerating}
-                    onChange={(e) => setCreateWeekStart(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl p-3 focus:ring-2 focus:ring-primary/50 text-sm font-semibold text-on-surface outline-none"
-                  />
-                </div>
-
-                {/* Faixa Etária */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-secondary">
-                    Faixa Etária (Alinhamento BNCC)
-                  </label>
-                  <select
-                    value={createAgeGroup}
-                    disabled={isGenerating}
-                    onChange={(e) => setCreateAgeGroup(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl p-3 focus:ring-2 focus:ring-primary/50 text-sm font-semibold text-on-surface outline-none"
-                  >
-                    <option value="Bebês (zero a 1 ano e 6 meses)">Bebês (0 a 1 ano e 6 meses)</option>
-                    <option value="Crianças Bem Pequenas (1 ano e 7 meses a 3 anos e 11 meses)">Crianças Bem Pequenas (1 ano e 7 meses a 3 anos e 11 meses)</option>
-                    <option value="Crianças Pequenas (4 anos a 5 anos e 11 meses)">Crianças Pequenas (4 a 5 anos e 11 meses)</option>
-                  </select>
-                </div>
-
-                {/* Tema da Semana */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-secondary">
-                    Tema da Semana
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Fundo do Mar, Festa Junina, Os Dinossauros"
-                    value={createTheme}
-                    disabled={isGenerating}
-                    onChange={(e) => setCreateTheme(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl p-3 focus:ring-2 focus:ring-primary/50 text-sm font-semibold text-on-surface outline-none placeholder:text-on-surface-variant/40"
-                  />
-                </div>
-
-                {/* Diretrizes / Instruções */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-secondary">
-                    Diretrizes ou Foco da Semana (Opcional)
-                  </label>
-                  <textarea
-                    placeholder="Ex: Gostaria de focar em modelagem com massinha na terça, contação de histórias na quinta e brincadeiras físicas no pátio."
-                    value={createGuidelines}
-                    disabled={isGenerating}
-                    onChange={(e) => setCreateGuidelines(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl p-3 focus:ring-2 focus:ring-primary/50 text-sm font-medium text-on-surface outline-none resize-none h-24 placeholder:text-on-surface-variant/40"
-                  />
-                </div>
-              </div>
-
-              {/* Ações (Botoes) */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-outline-variant/50">
-                <button
-                  type="button"
-                  onClick={handleCreateManually}
-                  disabled={isGenerating}
-                  className="flex-1 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider p-3.5 rounded-full transition-all"
-                >
-                  Criar em Branco (Manual)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleGenerateWithAI}
-                  disabled={isGenerating}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary text-white font-bold text-xs uppercase tracking-wider p-3.5 rounded-full shadow-lg shadow-primary/15 disabled:opacity-85 transition-all hover:brightness-105 active:scale-[0.98]"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin text-white" />
-                      Gerando Planejamento...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} className="text-white" />
-                      Gerar com Inteligência Artificial
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Detalhe de Loading da IA (Orb animado sutil de fundo) */}
-              {isGenerating && (
-                <div className="absolute inset-0 bg-surface-container/70 backdrop-blur-[1px] flex flex-col items-center justify-center space-y-4">
-                  <div className="relative w-24 h-24">
-                    <motion.div
-                      animate={{ rotate: 360, borderRadius: ["40% 60% 70% 30% / 40% 50% 60% 50%", "70% 30% 52% 48% / 60% 40% 60% 40%", "40% 60% 70% 30% / 40% 50% 60% 50%"] }}
-                      transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                      className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-secondary/30 blur-sm"
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
-                    >
-                      <Sparkles size={32} className="text-white animate-pulse" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center space-y-1 z-10">
-                    <p className="font-sans font-bold text-sm text-on-surface">Estruturando Ideias Pedagógicas</p>
-                    <p className="text-xs text-on-surface-variant font-medium animate-pulse">A IA do Gemini está alinhando as diretrizes com a BNCC...</p>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <CreatePlannerModal
+        isOpen={isCreateModalOpen}
+        isGenerating={isGenerating}
+        error={generationError}
+        onGenerate={handleGenerateWithAI}
+        onManual={handleCreateManually}
+        onClose={() => !isGenerating && setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     difficulty = body.difficulty || "";
     activityType = body.activityType || [];
     const previousTitlesAndThemes = body.previousTitlesAndThemes;
+    const availableMaterials = body.availableMaterials || "";
     
     typesString = Array.isArray(activityType) ? activityType.join(" e ") : (activityType || "");
 
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
       ? `\n    - IMPORTANTE: Para evitar repetições e redundâncias, NÃO crie uma atividade com títulos, dinâmicas ou temas parecidos com as seguintes atividades já geradas anteriormente: ${previousTitlesAndThemes.join(", ")}. Crie algo novo, criativo e diferente!`
       : '';
 
+    const materialsClause = availableMaterials
+      ? `\n    - MATERIAIS DISPONÍVEIS NA SALA: Priorize o uso destes materiais que já estão em estoque: ${availableMaterials}. Sugira apenas materiais extras se forem absolutamente necessários.`
+      : '';
+
     const prompt = `Você é um especialista em pedagogia infantil, extremamente criativo.
     Crie uma atividade prática detalhada com os seguintes parâmetros:
     Faixa Etária: ${ageGroup}
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
     - Para questões de pintura/desenho, use verbos como "Desenhe" ou "Pinte" no início da frase.
     - Para questões de resposta escrita, formule perguntas diretas sem instruções de desenho.
     - O campo 'type' deve ser curto, ex: "Atividade Interna" ou "Atividade Sensorial".
-    - REGRA CRÍTICA PARA IMAGENS: A propriedade 'illustrationPrompts' deve ser um array de strings com o mesmo tamanho exato do array 'studentQuestions'. Para TODA pergunta que exija desenhar, colorir ou pintar, você DEVE OBRIGATORIAMENTE fornecer uma descrição visual rica, detalhada e EM INGLÊS focada no objeto que a criança deve desenhar. NUNCA deixe vazio para perguntas de desenho. Para perguntas puramente de texto, forneça uma string vazia "".${avoidDuplicateClause}
+      - REGRA CRÍTICA PARA IMAGENS: A propriedade 'illustrationPrompts' deve ser um array de strings com o mesmo tamanho exato do array 'studentQuestions'. Para TODA pergunta que exija desenhar, colorir ou pintar, você DEVE OBRIGATORIAMENTE fornecer uma descrição visual rica, detalhada e EM INGLÊS focada no objeto que a criança deve desenhar. NUNCA deixe vazio para perguntas de desenho. Para perguntas puramente de texto, forneça uma string vazia "".${avoidDuplicateClause}${materialsClause}
     - DICIONÁRIO VISUAL CULTURAL: Modelos de imagem em inglês não entendem o folclore brasileiro. Se a atividade for de Festa Junina, traduza OBRIGATORIAMENTE o 'illustrationPrompts' usando estes termos exatos para evitar erros:
       * Balão de São João/Festa Junina -> "a diamond-shaped paper lantern, origami style balloon" (NUNCA use "hot air balloon")
       * Bandeirinhas -> "a string of triangular party pennants hanging"

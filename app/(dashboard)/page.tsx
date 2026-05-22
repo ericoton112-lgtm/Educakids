@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Cake, Plus, ChevronRight, Sun, X, Play, Check, CloudRain, Palette, Sparkles, Star, Users, Smile, Meh, Frown, BarChart3, Loader2 } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Plus, ChevronRight, Sun, X, Play, Check, CloudRain, Palette, Sparkles, Star, Users, Smile, Meh, Frown, BarChart3, Loader2, BookOpen } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { startOfWeek, format } from 'date-fns';
+import ModoAula from '@/app/components/ModoAula';
 
 export default function HomePage() {
   const supabase = createClient();
@@ -14,7 +15,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
 
   // Dados do Planner
-  const [todayActivity, setTodayActivity] = useState<{ title: string; time: string; type: string } | null>(null);
+  const [todayActivity, setTodayActivity] = useState<{ title: string; time: string; type: string; steps?: { title: string; content: string }[] } | null>(null);
   const [weekDays, setWeekDays] = useState<any[]>([]);
   const [weekTheme, setWeekTheme] = useState('');
 
@@ -28,6 +29,8 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItemTitle, setNewItemTitle] = useState('');
   const [isStarted, setIsStarted] = useState(false);
+  const [isModoAulaOpen, setIsModoAulaOpen] = useState(false);
+  const [activeSteps, setActiveSteps] = useState<{ title: string; content: string }[]>([]);
 
   // Data e saudação
   const now = useMemo(() => new Date(), [mounted]);
@@ -235,7 +238,19 @@ export default function HomePage() {
           {todayActivity && (
             <motion.button 
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsStarted(!isStarted)}
+              onClick={() => {
+                if (!isStarted) {
+                  setActiveSteps(
+                    todayActivity.steps || [
+                      { title: 'Preparação', content: 'Organize os materiais necessários.' },
+                      { title: 'Desenvolvimento', content: 'Conduza a atividade com os alunos.' },
+                      { title: 'Encerramento', content: 'Faça uma roda de conversa sobre o que aprenderam.' },
+                    ]
+                  );
+                  setIsModoAulaOpen(true);
+                }
+                setIsStarted(!isStarted);
+              }}
               className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-md flex items-center gap-2 transition-colors duration-300 shrink-0 ${
                 isStarted 
                   ? 'bg-white/25 text-white border border-white/30' 
@@ -279,7 +294,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3 text-sm">
                 <span className="flex items-center gap-1"><Smile size={14} className="text-success" /> {smileCount}</span>
                 <span className="flex items-center gap-1"><Meh size={14} className="text-secondary" /> {mehCount}</span>
-                <span className="flex itemscape gap-1"><Frown size={14} className="text-error" /> {sadCount}</span>
+                <span className="flex items-center gap-1"><Frown size={14} className="text-error" /> {sadCount}</span>
               </div>
               <p className="font-bold text-sm mt-1">Humor da Turma</p>
             </div>
@@ -424,7 +439,7 @@ export default function HomePage() {
                 >
                   <button
                     onClick={() => toggleFocusDone(item.id)}
-                    className={`w-5.5 h-5.5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                    className={`w-[22px] h-[22px] rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
                       item.done 
                         ? 'bg-primary border-primary' 
                         : 'border-outline-variant hover:border-primary/60'
@@ -516,6 +531,14 @@ export default function HomePage() {
           </>
         )}
       </AnimatePresence>
+
+      <ModoAula
+        isOpen={isModoAulaOpen}
+        activityTitle={todayActivity?.title || 'Atividade'}
+        steps={activeSteps}
+        onClose={() => { setIsModoAulaOpen(false); setIsStarted(false); }}
+        onComplete={() => { setIsStarted(true); }}
+      />
     </div>
   );
 }

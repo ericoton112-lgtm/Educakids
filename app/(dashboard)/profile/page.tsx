@@ -2,24 +2,53 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Mail, Bell, Shield, Moon, LogOut, ChevronRight, GraduationCap, Building, Edit2, Save, Camera, X, Check, Sparkles, Calendar, LayoutGrid, BookOpen, Sun, Smile, Loader2, Award, Clock, TrendingUp } from 'lucide-react';
+import { User, Mail, Bell, Shield, Moon, LogOut, ChevronRight, GraduationCap, Building, Edit2, Save, Camera, X, Check, Sparkles, Calendar, LayoutGrid, BookOpen, Sun, Smile, Loader2, Award, Clock, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { startOfWeek, format } from 'date-fns';
 
-export default function ProfilePage() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
+interface ProfileData {
+  name: string;
+  email: string;
+  classes: string;
+  school: string;
+  avatar: string;
+}
+
+function loadProfileFromStorage(): ProfileData {
+  try {
+    const saved = localStorage.getItem('educakids_user');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.name) {
+        return {
+          name: parsed.name,
+          email: parsed.email || 'profa@educakids.com',
+          classes: parsed.classes || 'Berçário A',
+          school: parsed.school || 'Escola',
+          avatar: 'https://picsum.photos/seed/teacher/400'
+        };
+      }
+    }
+  } catch { /* ignore */ }
+  return {
     name: 'Professora',
     email: 'profa@educakids.com',
     classes: 'Berçário A',
     school: 'Escola',
     avatar: 'https://picsum.photos/seed/teacher/400'
-  });
+  };
+}
+
+export default function ProfilePage() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState(loadProfileFromStorage);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
   const [isDark, setIsDark] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   // Estatísticas
   const [stats, setStats] = useState({ students: 0, activities: 0, planners: 0 });
@@ -37,78 +66,39 @@ export default function ProfilePage() {
   useEffect(() => {
     // Tema atual
     setIsDark(document.documentElement.classList.contains('dark'));
+    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
 
-    // 1. Carregar do localStorage
-    const stored = localStorage.getItem('educakids_user');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setProfile(prev => ({
-          ...prev,
-          name: parsed.name || prev.name,
-          email: parsed.email || prev.email,
-        }));
-      } catch { /* ignore */ }
-    }
-
-    // 2. Carregar do Supabase
-    const loadProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+    // Fallback: metadados do login se não tiver localStorage
+    try {
+      supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return;
-
-        try {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (data) {
-            setProfile({
-              name: data.name || profile.name,
-              email: data.email || user.email || profile.email,
-              classes: data.classes || profile.classes,
-              school: data.school || profile.school,
-              avatar: data.avatar || profile.avatar,
-            });
-            localStorage.setItem('educakids_user', JSON.stringify({
-              name: data.name || profile.name,
-              email: data.email || profile.email,
-            }));
-            return;
-          }
-        } catch { /* ignore */ }
-
-        const metaName = user.user_metadata?.name;
-        const metaClasses = user.user_metadata?.classes || '';
-        const metaSchool = user.user_metadata?.school || '';
-        if (metaName || metaClasses || metaSchool) {
-          setProfile(prev => ({
-            ...prev,
-            name: metaName || prev.name,
-            email: user.email || prev.email,
-            classes: metaClasses || prev.classes,
-            school: metaSchool || prev.school,
-          }));
+        const saved = localStorage.getItem('educakids_user');
+        if (saved) {
+          const p = JSON.parse(saved);
+          if (p?.name && p.name !== 'Professora') return;
         }
-      } catch (err) {
-        console.error('Erro ao carregar perfil:', err);
-      }
-    };
-    loadProfile();
+        const metaName = user.user_metadata?.name;
+        if (metaName) {
+          setProfile(prev => ({ ...prev, name: metaName }));
+          localStorage.setItem('educakids_user', JSON.stringify({ name: metaName, email: user.email }));
+        }
+      });
+    } catch { /* ignore */ }
 
     // 3. Estatísticas
     const studentsData = localStorage.getItem('educakids_students');
-    const studentCount = studentsData ? JSON.parse(studentsData).length : 0;
+    const studentCount = studentsData ? JSON.parse(studentsData!).length : 0;
 
     const historyData = localStorage.getItem('educakids_activity_history');
-    const activityCount = historyData ? JSON.parse(historyData).length : 0;
+    const activityCount = historyData ? JSON.parse(historyData!).length : 0;
 
     let plannerCount = 0;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('educakids_plan_')) plannerCount++;
+      if (key && key!.startsWith('educakids_plan_')) plannerCount++;
     }
     setStats({ students: studentCount, activities: activityCount, planners: plannerCount });
 
@@ -121,7 +111,7 @@ export default function ProfilePage() {
     let activity = '';
     if (planData) {
       try {
-        const plan = JSON.parse(planData);
+        const plan = JSON.parse(planData!);
         theme = plan.theme || '';
         const todayIndex = now.getDay() - 1;
         if (todayIndex >= 0 && todayIndex < (plan.days || []).length) {
@@ -130,7 +120,7 @@ export default function ProfilePage() {
         }
       } catch { /* ignore */ }
     }
-    const present = studentsData ? JSON.parse(studentsData).filter((s: any) => s.behavior !== 'absent').length : 0;
+    const present = studentsData ? JSON.parse(studentsData!).filter((s: any) => s.behavior !== 'absent').length : 0;
     setTodaySummary({ theme, present, total: studentCount, activity });
 
     // 5. Conquistas
@@ -166,6 +156,17 @@ export default function ProfilePage() {
     setIsDark(newDark);
     document.documentElement.classList.toggle('dark', newDark);
     localStorage.setItem('educakids_theme', newDark ? 'dark' : 'light');
+  };
+
+  const handleInstallApp = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      setInstallPrompt(null);
+    } else {
+      setToast({ show: true, message: 'No seu navegador, use "Adicionar à Tela Inicial" pelo menu ⋮', type: 'success' });
+      setTimeout(() => setToast(t => ({ ...t, show: false })), 4000);
+    }
   };
 
   const handleSave = async () => {
@@ -218,6 +219,7 @@ export default function ProfilePage() {
     { id: 'notif', icon: Bell, title: 'Notificações', desc: 'Gerencie alertas e e-mails diários', color: 'text-primary bg-primary-container/30' },
     { id: 'theme', icon: isDark ? Sun : Moon, title: isDark ? 'Modo Claro' : 'Modo Escuro', desc: isDark ? 'Ativar tema claro' : 'Ativar tema escuro', color: 'text-secondary bg-secondary-container/30', onClick: toggleTheme },
     { id: 'sec', icon: Shield, title: 'Segurança da Conta', desc: 'Senha, PIN e autenticação de 2 fatores', color: 'text-tertiary bg-tertiary-container/30' },
+    ...(!isInstalled ? [{ id: 'install', icon: Download, title: 'Instalar App', desc: 'Adicionar Educakids à tela inicial', color: 'text-primary bg-primary/10', onClick: handleInstallApp }] : []),
   ];
 
   return (

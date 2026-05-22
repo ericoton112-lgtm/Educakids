@@ -92,6 +92,21 @@ export default function ActivitiesPage() {
     try {
       const previousTitlesAndThemes = historyList.map(item => `${item.activity.title} (${item.formData.theme})`);
 
+      // Read available supplies from localStorage to inject into the AI prompt
+      let availableMaterials = '';
+      try {
+        const stored = localStorage.getItem('educakids_supplies');
+        if (stored) {
+          const supplies = JSON.parse(stored);
+          const okItems = supplies.flatMap((cat: any) =>
+            cat.items.filter((i: any) => i.status === 'ok').map((i: any) => i.name)
+          );
+          if (okItems.length > 0) {
+            availableMaterials = okItems.join(', ');
+          }
+        }
+      } catch { /* ignore */ }
+
       const res = await fetch('/api/genai/activity', {
         method: 'POST',
         headers: {
@@ -99,7 +114,8 @@ export default function ActivitiesPage() {
         },
         body: JSON.stringify({
           ...formData,
-          previousTitlesAndThemes
+          previousTitlesAndThemes,
+          availableMaterials: availableMaterials || undefined
         }),
       });
       if (!res.ok) {
