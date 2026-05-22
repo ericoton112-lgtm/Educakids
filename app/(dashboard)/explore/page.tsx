@@ -808,14 +808,19 @@ export default function ExplorePage() {
                           <div className="bg-surface-container-low rounded-[2.5rem] overflow-hidden border border-outline-variant/30 shadow-lg">
                             {/* TV Frame */}
                             <div className="relative bg-gradient-to-br from-secondary/20 to-primary/10 px-4 pt-4 pb-2">
-                              <div className="aspect-video rounded-2xl overflow-hidden shadow-inner bg-black">
+                              <div className="aspect-video rounded-2xl overflow-hidden shadow-inner bg-black relative">
                                 <iframe
-                                  src={`https://www.youtube.com/embed/${getActiveSong().videoId}?autoplay=1&rel=0`}
+                                  src={`https://www.youtube.com/embed/${getActiveSong().videoId}?autoplay=1&mute=1&rel=0`}
                                   title={getActiveSong().title}
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                   allowFullScreen
+                                  loading="lazy"
                                   className="w-full h-full"
                                 />
+                                {/* Fallback click overlay – se o iframe não carregar */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <span className="text-6xl opacity-30">📺</span>
+                                </div>
                               </div>
                               {/* TV Antenna decoration */}
                               <div className="flex justify-center gap-1 pt-2">
@@ -832,6 +837,18 @@ export default function ExplorePage() {
                                 <p className="text-base md:text-lg font-bold text-on-surface leading-relaxed text-center whitespace-pre-line">
                                   {getActiveSong().lyrics}
                                 </p>
+                              </div>
+                              {/* Link fallback */}
+                              <div className="flex justify-center mt-4">
+                                <a
+                                  href={`https://www.youtube.com/watch?v=${getActiveSong().videoId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-black uppercase tracking-wider text-secondary hover:text-primary transition-colors flex items-center gap-1"
+                                >
+                                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M23.5 6.5A3.5 3.5 0 0020 3H4a3.5 3.5 0 00-3.5 3.5v9A3.5 3.5 0 004 19h16a3.5 3.5 0 003.5-3.5v-9zM10 15V9l6 3-6 3z"/></svg>
+                                  Assistir no YouTube
+                                </a>
                               </div>
                             </div>
                           </div>
