@@ -42,6 +42,7 @@ interface Song {
   lyrics: string;
   sequence: string[];
   segments: SongSegment[];
+  videoId?: string;
 }
 
 export default function ExplorePage() {
@@ -343,14 +344,14 @@ export default function ExplorePage() {
   ];
 
   const musicList: Song[] = [
-    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou. Já passou a chuva, o sol já vai surgindo, e a Dona Aranha de novo vai subindo!", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'], segments: [
+    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou. Já passou a chuva, o sol já vai surgindo, e a Dona Aranha de novo vai subindo!", videoId: "yW-A5S-p894", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'], segments: [
       { text: "A Dona Aranha subiu pela parede", note: "Dó" },
       { text: "veio a chuva forte e a derrubou", note: "Ré" },
       { text: "Já passou a chuva, o sol já vai surgindo", note: "Mi" },
       { text: "e a Dona Aranha de novo vai subindo", note: "Fá" },
       { text: "de novo vai subindo!", note: "Sol" },
     ]},
-    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu. No céu escuro a brilhar, que alegria em te olhar!", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'], segments: [
+    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu. No céu escuro a brilhar, que alegria em te olhar!", videoId: "g4p0_gS6_oY", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'], segments: [
       { text: "Brilha", note: "Dó" },
       { text: "brilha", note: "Dó" },
       { text: "estrelinha", note: "Sol" },
@@ -359,14 +360,14 @@ export default function ExplorePage() {
       { text: "que alegria", note: "Lá" },
       { text: "em te olhar!", note: "Sol" },
     ]},
-    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão. Quando ele pia, ele faz assim: piu, piu, piu, piu!", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'], segments: [
+    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão. Quando ele pia, ele faz assim: piu, piu, piu, piu!", videoId: "57k4K5u7DqM", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'], segments: [
       { text: "Meu pintinho amarelinho", note: "Mi" },
       { text: "cabe aqui na minha mão", note: "Mi" },
       { text: "na minha mão", note: "Ré" },
       { text: "quando ele pia ele faz assim", note: "Ré" },
       { text: "piu piu piu piu!", note: "Dó" },
     ]},
-    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai, cai, balão, cai, cai, balão, aqui na minha mão. Não cai não, não cai não, cai na rua do sabão!", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'], segments: [
+    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai, cai, balão, cai, cai, balão, aqui na minha mão. Não cai não, não cai não, cai na rua do sabão!", videoId: "J2zU32FwSj8", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'], segments: [
       { text: "Cai cai balão", note: "Fá" },
       { text: "cai cai balão", note: "Fá" },
       { text: "aqui na minha mão", note: "Mi" },
@@ -374,42 +375,42 @@ export default function ExplorePage() {
       { text: "não cai não", note: "Ré" },
       { text: "cai na rua do sabão!", note: "Dó" },
     ]},
-    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado. Alecrim, alecrim dourado que nasceu no campo sem ser semeado.", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'], segments: [
+    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado. Alecrim, alecrim dourado que nasceu no campo sem ser semeado.", videoId: "s3G9C9X1Xw0", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'], segments: [
       { text: "Alecrim alecrim dourado", note: "Mi" },
       { text: "que nasceu no campo", note: "Sol" },
       { text: "sem ser semeado", note: "Lá" },
       { text: "Alecrim alecrim dourado", note: "Sol" },
       { text: "que nasceu no campo sem ser semeado", note: "Mi" },
     ]},
-    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha. Borboletinha está na cozinha, fazendo chocolate para a madrinha.", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'], segments: [
+    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha. Borboletinha está na cozinha, fazendo chocolate para a madrinha.", videoId: "9o4v6p842Bw", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'], segments: [
       { text: "Borboletinha está na cozinha", note: "Dó" },
       { text: "fazendo chocolate", note: "Ré" },
       { text: "para a madrinha", note: "Mi" },
       { text: "Borboletinha está na cozinha", note: "Ré" },
       { text: "fazendo chocolate para a madrinha", note: "Dó" },
     ]},
-    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada. Samba Lelê precisava de uma boa lambada.", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'], segments: [
+    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada. Samba Lelê precisava de uma boa lambada.", videoId: "M2Q1bU-fWSw", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'], segments: [
       { text: "Samba Lelê tá doente", note: "Sol" },
       { text: "tá com a cabeça quebrada", note: "Sol" },
       { text: "Samba Lelê precisava", note: "Mi" },
       { text: "de uma boa lambada", note: "Fá" },
       { text: "Samba Lelê!", note: "Sol" },
     ]},
-    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta, volta e meia vamos dar.", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'], segments: [
+    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta, volta e meia vamos dar.", videoId: "1-0d3tT5Uu4", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'], segments: [
       { text: "Ciranda cirandinha", note: "Dó" },
       { text: "vamos todos cirandar", note: "Mi" },
       { text: "vamos dar a meia volta", note: "Sol" },
       { text: "volta e meia vamos dar", note: "Mi" },
       { text: "vamos dar!", note: "Dó" },
     ]},
-    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver sem a tua companhia?", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'], segments: [
+    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver sem a tua companhia?", videoId: "S-A0vM-r45E", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'], segments: [
       { text: "Como pode um peixe vivo", note: "Ré" },
       { text: "viver fora da água fria", note: "Fá" },
       { text: "Como poderei viver", note: "Lá" },
       { text: "sem a tua companhia", note: "Fá" },
       { text: "sem a tua companhia!", note: "Ré" },
     ]},
-    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos, 10 num pequeno bote!", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'], segments: [
+    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos, 10 num pequeno bote!", videoId: "yXwQ4b1zZCo", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'], segments: [
       { text: "1 2 3 indiozinhos", note: "Dó" },
       { text: "4 5 6 indiozinhos", note: "Mi" },
       { text: "7 8 9 indiozinhos", note: "Sol" },
@@ -433,44 +434,6 @@ export default function ExplorePage() {
       return generatedSongs[activeMusicIdx!];
     }
     return allSongs[activeMusicIdx ?? 0];
-  };
-
-  const xyloKeys = [
-    { note: 'Dó', freq: 261.63, color: 'bg-red-500 hover:bg-red-400' },
-    { note: 'Ré', freq: 293.66, color: 'bg-orange-500 hover:bg-orange-400' },
-    { note: 'Mi', freq: 329.63, color: 'bg-yellow-500 hover:bg-yellow-400' },
-    { note: 'Fá', freq: 349.23, color: 'bg-emerald-500 hover:bg-emerald-400' },
-    { note: 'Sol', freq: 392.00, color: 'bg-teal-500 hover:bg-teal-400' },
-    { note: 'Lá', freq: 440.00, color: 'bg-blue-500 hover:bg-blue-400' },
-    { note: 'Si', freq: 493.88, color: 'bg-purple-500 hover:bg-purple-400' },
-    { note: 'Dó⁺', freq: 523.25, color: 'bg-pink-500 hover:bg-pink-400' },
-  ];
-
-  const playDrumSound = (type: 'kick' | 'snare') => {
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      if (type === 'kick') {
-        osc.frequency.setValueAtTime(140, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        gain.gain.setValueAtTime(0.7, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.35);
-      } else {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(240, ctx.currentTime);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-      }
-    } catch (e) { console.error(e); }
   };
 
   const gamesList = [
@@ -839,107 +802,120 @@ export default function ExplorePage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Karaokê player */}
-                      <div className="bg-gradient-to-br from-secondary-container/20 to-primary-container/10 border border-secondary-container p-6 rounded-[2.5rem] text-center space-y-4 relative overflow-hidden">
-                        <span className="absolute top-2 right-2 text-2xl animate-spin duration-3000">🎵</span>
-                        <h4 className="font-sans font-bold text-lg text-secondary">{getActiveSong().title}</h4>
+                      {getActiveSong().videoId ? (
+                        <>
+                          {/* --- Player de TV (Músicas Fixas com Vídeo) --- */}
+                          <div className="bg-surface-container-low rounded-[2.5rem] overflow-hidden border border-outline-variant/30 shadow-lg">
+                            {/* TV Frame */}
+                            <div className="relative bg-gradient-to-br from-secondary/20 to-primary/10 px-4 pt-4 pb-2">
+                              <div className="aspect-video rounded-2xl overflow-hidden shadow-inner bg-black">
+                                <iframe
+                                  src={`https://www.youtube.com/embed/${getActiveSong().videoId}?autoplay=1&rel=0`}
+                                  title={getActiveSong().title}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="w-full h-full"
+                                />
+                              </div>
+                              {/* TV Antenna decoration */}
+                              <div className="flex justify-center gap-1 pt-2">
+                                <span className="w-2 h-2 rounded-full bg-error/60" />
+                                <span className="w-2 h-2 rounded-full bg-secondary/60" />
+                                <span className="w-2 h-2 rounded-full bg-primary/60" />
+                              </div>
+                            </div>
 
-                        {/* Letra com destaque no segmento atual */}
-                        <div className="min-h-[80px] flex items-center justify-center">
-                          <AnimatePresence mode="wait">
-                            {isKaraokePlaying ? (
-                              <motion.p
-                                key={karaokeIndex}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                className="text-sm font-bold text-on-surface leading-relaxed max-w-md mx-auto transition-colors"
-                              >
-                                {(getActiveSong().segments?.[karaokeIndex]?.text || getActiveSong().lyrics)}
-                                <span className="block mt-2 text-[10px] font-black text-secondary tracking-widest">
-                                  Nota: {getActiveSong().segments?.[karaokeIndex]?.note || ''}
-                                </span>
-                              </motion.p>
-                            ) : (
-                              <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic max-w-md mx-auto">
-                                &quot;{getActiveSong().lyrics}&quot;
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Barra de progresso */}
-                        {isKaraokePlaying && (
-                          <div className="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
-                            <motion.div
-                              className="h-full bg-gradient-to-r from-secondary to-primary rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${((karaokeIndex + 1) / (getActiveSong().segments?.length || getActiveSong().sequence.length)) * 100}%` }}
-                              transition={{ duration: 0.3 }}
-                            />
+                            {/* Letra completa em fonte grande */}
+                            <div className="p-6 md:p-8 bg-gradient-to-b from-surface-container-lowest to-surface-container-low">
+                              <h4 className="font-sans font-bold text-lg text-secondary text-center mb-4">{getActiveSong().title}</h4>
+                              <div className="max-w-lg mx-auto bg-surface-container-high rounded-3xl p-6 border border-outline-variant/20">
+                                <p className="text-base md:text-lg font-bold text-on-surface leading-relaxed text-center whitespace-pre-line">
+                                  {getActiveSong().lyrics}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        )}
+                        </>
+                      ) : (
+                        <>
+                          {/* --- Karaokê Sintético (Músicas Geradas por IA) --- */}
+                          <div className="bg-gradient-to-br from-secondary-container/20 to-primary-container/10 border border-secondary-container p-6 rounded-[2.5rem] text-center space-y-4 relative overflow-hidden">
+                            <span className="absolute top-2 right-2 text-4xl animate-bounce">🎤</span>
+                            <h4 className="font-sans font-bold text-lg text-secondary">{getActiveSong().title}</h4>
 
-                        {/* Sequência de notas com destaque */}
-                        <div className="flex justify-center gap-1.5 pt-1 flex-wrap">
-                          {(getActiveSong().segments || getActiveSong().sequence.map((n, i) => ({ text: '', note: n }))).map((seg, i) => (
-                            <span
-                              key={i}
-                              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                                isKaraokePlaying && i === karaokeIndex
-                                  ? 'bg-secondary text-on-secondary scale-125 shadow-lg'
-                                  : isKaraokePlaying && i < karaokeIndex
-                                  ? 'bg-secondary/30 text-on-surface-variant line-through'
-                                  : 'bg-surface-container-lowest border border-outline-variant text-primary'
+                            {/* Mascote cantando */}
+                            <div className="text-5xl animate-bounce duration-1000">🎤✨</div>
+
+                            {/* Letra com destaque no segmento atual */}
+                            <div className="min-h-[80px] flex items-center justify-center">
+                              <AnimatePresence mode="wait">
+                                {isKaraokePlaying ? (
+                                  <motion.p
+                                    key={karaokeIndex}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    className="text-lg font-bold text-on-surface leading-relaxed max-w-md mx-auto transition-colors"
+                                  >
+                                    {getActiveSong().segments?.[karaokeIndex]?.text || getActiveSong().lyrics}
+                                  </motion.p>
+                                ) : (
+                                  <p className="text-sm text-on-surface-variant font-medium leading-relaxed italic max-w-md mx-auto">
+                                    &quot;{getActiveSong().lyrics}&quot;
+                                  </p>
+                                )}
+                              </AnimatePresence>
+                            </div>
+
+                            {/* Barra de progresso */}
+                            {isKaraokePlaying && (
+                              <div className="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+                                <motion.div
+                                  className="h-full bg-gradient-to-r from-secondary to-primary rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${((karaokeIndex + 1) / (getActiveSong().segments?.length || getActiveSong().sequence.length)) * 100}%` }}
+                                  transition={{ duration: 0.3 }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Sequência de notas com destaque */}
+                            <div className="flex justify-center gap-1.5 pt-1 flex-wrap">
+                              {(getActiveSong().segments || getActiveSong().sequence.map((n, i) => ({ text: '', note: n }))).map((seg, i) => (
+                                <span
+                                  key={i}
+                                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                                    isKaraokePlaying && i === karaokeIndex
+                                      ? 'bg-secondary text-on-secondary scale-125 shadow-lg'
+                                      : isKaraokePlaying && i < karaokeIndex
+                                      ? 'bg-secondary/30 text-on-surface-variant line-through'
+                                      : 'bg-surface-container-lowest border border-outline-variant text-primary'
+                                  }`}
+                                >
+                                  {seg.note}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Botão play/stop karaokê */}
+                          <div className="flex justify-center">
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                if (isKaraokePlaying) { stopKaraoke(); }
+                                else { startKaraoke(getActiveSong()); }
+                              }}
+                              className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-2 ${
+                                isKaraokePlaying ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
                               }`}
                             >
-                              {seg.note}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Karaokê play/stop button */}
-                      <div className="flex justify-center">
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            if (isKaraokePlaying) { stopKaraoke(); }
-                            else { startKaraoke(getActiveSong()); }
-                          }}
-                          className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-2 ${
-                            isKaraokePlaying ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
-                          }`}
-                        >
-                          {isKaraokePlaying ? <X size={16} /> : <Play size={16} className="fill-current" />}
-                          {isKaraokePlaying ? 'Parar' : 'Cantar Junto 🎤'}
-                        </motion.button>
-                      </div>
-
-                      {activeMusicIdx === 2 && (
-                        <div className="bg-surface-container-low p-4 rounded-[2rem] border border-outline-variant/30 flex justify-center gap-4">
-                          <motion.button whileTap={{ scale: 0.9 }} onClick={() => playDrumSound('kick')}
-                            className="w-24 h-16 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center shadow-md border-b-4 border-amber-700">Bumbo 🥁</motion.button>
-                          <motion.button whileTap={{ scale: 0.9 }} onClick={() => playDrumSound('snare')}
-                            className="w-24 h-16 bg-slate-500 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center shadow-md border-b-4 border-slate-700">Caixa 🥁</motion.button>
-                        </div>
+                              {isKaraokePlaying ? <X size={16} /> : <Play size={16} className="fill-current" />}
+                              {isKaraokePlaying ? 'Parar' : 'Cantar Junto 🎤'}
+                            </motion.button>
+                          </div>
+                        </>
                       )}
-
-                      <div className="bg-surface-container-high rounded-[2.5rem] p-6 shadow-inner flex justify-center gap-2 items-stretch h-56 border border-outline-variant/30">
-                        {xyloKeys.map((k, idx) => (
-                          <motion.button
-                            key={idx}
-                            whileHover={{ y: 2 }}
-                            whileTap={{ scale: 0.92, opacity: 0.9 }}
-                            onClick={() => playXyloNote(k.freq)}
-                            className={`w-10 rounded-2xl flex flex-col justify-end pb-4 items-center text-white font-black text-xs shadow-md border-b-8 border-black/25 ${k.color} transition-all`}
-                            style={{ height: `${100 - idx * 4}%` }}
-                          >
-                            <Volume2 size={12} className="mb-2 opacity-60" />
-                            <span>{k.note}</span>
-                          </motion.button>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </>
