@@ -65,7 +65,7 @@ Responda APENAS com JSON:
   ]
 }`;
     } else if (type === 'song') {
-      prompt = `Você é um compositor de música infantil brasileira.
+      prompt = `Você é um compositor de música infantil brasileiro.
 
 Crie uma cantiga infantil sobre o tema: "${theme}".
 ${bnccClause}
@@ -75,6 +75,8 @@ REGRAS:
 - A letra deve ter no máximo 4 linhas.
 - Forneça uma sequência de notas para xilofone (use apenas: Dó, Ré, Mi, Fá, Sol, Lá, Si, Dó⁺).
 - A sequência deve ter entre 4 e 8 notas.
+- Forneça "segments": um array com o mesmo número de itens da sequência, onde cada item tem "text" (um trecho da letra) e "note" (a nota correspondente).
+- Cada segmento deve conter um trecho da letra que será cantado naquela nota.
 - Use emojis nos campos de título e descrição.
 
 Responda APENAS com JSON:
@@ -83,7 +85,11 @@ Responda APENAS com JSON:
   "desc": "Breve descrição do tema",
   "emoji": "emoji principal",
   "lyrics": "Letra da cantiga",
-  "sequence": ["Dó", "Ré", "Mi", ...]
+  "sequence": ["Dó", "Ré", "Mi", ...],
+  "segments": [
+    { "text": "trecho da letra", "note": "Dó" },
+    { "text": "outro trecho", "note": "Ré" }
+  ]
 }`;
     }
 
@@ -138,12 +144,23 @@ function getMockExploreData(type: string, theme: string) {
     };
   }
 
+  const themeLyrics = theme || 'Alegria';
   return {
     type: 'song',
-    title: `Cantiga de ${theme || 'Alegria'} 🎵`,
-    desc: `Uma cantiga animada sobre ${theme || 'alegria'} para cantar e dançar!`,
+    title: `Cantiga de ${themeLyrics} 🎵`,
+    desc: `Uma cantiga animada sobre ${themeLyrics} para cantar e dançar!`,
     emoji: '🎵',
-    lyrics: `${theme || 'Alegria'} é tão bom, vamos cantar com animação! Pule, dance e sorria, encha o coração!`,
-    sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Sol', 'Fá']
+    lyrics: `${themeLyrics} é tão bom, vamos cantar com animação! Pule, dance e sorria, encha o coração!`,
+    sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Sol', 'Fá'],
+    segments: [
+      { text: `${themeLyrics} é tão bom`, note: 'Dó' },
+      { text: 'vamos cantar com animação', note: 'Ré' },
+      { text: 'Pule dance', note: 'Mi' },
+      { text: 'e sorria', note: 'Fá' },
+      { text: 'encha o coração', note: 'Sol' },
+      { text: 'de pura', note: 'Lá' },
+      { text: 'alegria', note: 'Sol' },
+      { text: 'e emoção!', note: 'Fá' },
+    ]
   };
 }

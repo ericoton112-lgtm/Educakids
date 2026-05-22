@@ -30,12 +30,18 @@ interface Story {
   pages: StoryPage[];
 }
 
+interface SongSegment {
+  text: string;
+  note: string;
+}
+
 interface Song {
   title: string;
   desc: string;
   emoji: string;
   lyrics: string;
   sequence: string[];
+  segments: SongSegment[];
 }
 
 export default function ExplorePage() {
@@ -101,7 +107,12 @@ export default function ExplorePage() {
           setGeneratedStories(prev => [newStory, ...prev].slice(0, 20));
           setSelectedCategory('Histórias');
         } else {
-          const newSong: Song = { title: data.title, desc: data.desc, emoji: data.emoji, lyrics: data.lyrics, sequence: data.sequence };
+          const newSegments = data.segments || data.sequence.map((n: string, i: number) => {
+            const words = (data.lyrics || '').split(/\s+/);
+            const chunkSize = Math.max(1, Math.ceil(words.length / data.sequence.length));
+            return { text: words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '), note: n };
+          });
+          const newSong: Song = { title: data.title, desc: data.desc, emoji: data.emoji, lyrics: data.lyrics, sequence: data.sequence, segments: newSegments };
           setGeneratedSongs(prev => [newSong, ...prev].slice(0, 20));
           setSelectedCategory('Músicas');
         }
@@ -113,10 +124,10 @@ export default function ExplorePage() {
     }
   };
 
-  // Auto-play melody
-  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
-  const autoPlayIndexRef = useRef(0);
+  // Karaoke playback
+  const [isKaraokePlaying, setIsKaraokePlaying] = useState(false);
+  const [karaokeIndex, setKaraokeIndex] = useState(0);
+  const karaokeRef = useRef<NodeJS.Timeout | null>(null);
 
   const playXyloNote = (frequency: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'triangle', duration = 0.8) => {
     try {
@@ -136,37 +147,43 @@ export default function ExplorePage() {
     } catch (e) { console.error(e); }
   };
 
-  const stopAutoPlay = useCallback(() => {
-    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    setIsAutoPlaying(false);
-    autoPlayRef.current = null;
+  const stopKaraoke = useCallback(() => {
+    if (karaokeRef.current) clearTimeout(karaokeRef.current);
+    setIsKaraokePlaying(false);
+    karaokeRef.current = null;
   }, []);
 
-  const startAutoPlay = (sequence: string[]) => {
-    stopAutoPlay();
+  const startKaraoke = (song: Song) => {
+    stopKaraoke();
     const noteMap: Record<string, number> = {
       'Dó': 261.63, 'Ré': 293.66, 'Mi': 329.63, 'Fá': 349.23,
       'Sol': 392.00, 'Lá': 440.00, 'Si': 493.88, 'Dó⁺': 523.25,
-      'Do': 261.63, 'Re': 293.66, 'Mi': 329.63, 'Fa': 349.23,
-      'Sol': 392.00, 'La': 440.00, 'Si': 493.88, 'Do+': 523.25, 'Dó+': 523.25,
+      'Do': 261.63, 'Re': 293.66, 'Fa': 349.23,
+      'La': 440.00, 'Do+': 523.25, 'Dó+': 523.25,
     };
 
-    setIsAutoPlaying(true);
-    autoPlayIndexRef.current = 0;
+    const segs = song.segments || song.sequence.map((note, i) => {
+      const words = song.lyrics.split(/\s+/);
+      const chunkSize = Math.max(1, Math.ceil(words.length / song.sequence.length));
+      return { text: words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '), note };
+    });
 
-    const playNext = () => {
-      if (autoPlayIndexRef.current >= sequence.length) {
-        stopAutoPlay();
+    setIsKaraokePlaying(true);
+    setKaraokeIndex(0);
+
+    const playSegment = (idx: number) => {
+      if (idx >= segs.length) {
+        stopKaraoke();
+        setKaraokeIndex(0);
         return;
       }
-      const note = sequence[autoPlayIndexRef.current];
-      const freq = noteMap[note] || 392;
+      setKaraokeIndex(idx);
+      const freq = noteMap[segs[idx].note] || 392;
       playXyloNote(freq, 'triangle', 0.6);
-      autoPlayIndexRef.current++;
+      karaokeRef.current = setTimeout(() => playSegment(idx + 1), 1200);
     };
 
-    playNext();
-    autoPlayRef.current = setInterval(playNext, 700);
+    playSegment(0);
   };
 
   // TTS
@@ -234,7 +251,7 @@ export default function ExplorePage() {
     setActiveStoryIdx(null);
     setActiveMusicIdx(null);
     setActiveGameIdx(null);
-    stopAutoPlay();
+    stopKaraoke();
     stopSpeaking();
     setIsUsingGenerated(false);
     setIsUsingGenSong(false);
@@ -326,16 +343,79 @@ export default function ExplorePage() {
   ];
 
   const musicList: Song[] = [
-    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou...", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'] },
-    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu...", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'] },
-    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão...", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'] },
-    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai cai balão, cai cai balão, aqui na minha mão. Não cai não...", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'] },
-    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado...", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'] },
-    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha...", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'] },
-    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada...", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'] },
-    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta...", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'] },
-    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver...", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'] },
-    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos...", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'] }
+    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou. Já passou a chuva, o sol já vai surgindo, e a Dona Aranha de novo vai subindo!", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'], segments: [
+      { text: "A Dona Aranha subiu pela parede", note: "Dó" },
+      { text: "veio a chuva forte e a derrubou", note: "Ré" },
+      { text: "Já passou a chuva, o sol já vai surgindo", note: "Mi" },
+      { text: "e a Dona Aranha de novo vai subindo", note: "Fá" },
+      { text: "de novo vai subindo!", note: "Sol" },
+    ]},
+    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu. No céu escuro a brilhar, que alegria em te olhar!", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'], segments: [
+      { text: "Brilha", note: "Dó" },
+      { text: "brilha", note: "Dó" },
+      { text: "estrelinha", note: "Sol" },
+      { text: "quero ver você brilhar", note: "Sol" },
+      { text: "no céu escuro a brilhar", note: "Lá" },
+      { text: "que alegria", note: "Lá" },
+      { text: "em te olhar!", note: "Sol" },
+    ]},
+    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão. Quando ele pia, ele faz assim: piu, piu, piu, piu!", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'], segments: [
+      { text: "Meu pintinho amarelinho", note: "Mi" },
+      { text: "cabe aqui na minha mão", note: "Mi" },
+      { text: "na minha mão", note: "Ré" },
+      { text: "quando ele pia ele faz assim", note: "Ré" },
+      { text: "piu piu piu piu!", note: "Dó" },
+    ]},
+    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai, cai, balão, cai, cai, balão, aqui na minha mão. Não cai não, não cai não, cai na rua do sabão!", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'], segments: [
+      { text: "Cai cai balão", note: "Fá" },
+      { text: "cai cai balão", note: "Fá" },
+      { text: "aqui na minha mão", note: "Mi" },
+      { text: "não cai não", note: "Mi" },
+      { text: "não cai não", note: "Ré" },
+      { text: "cai na rua do sabão!", note: "Dó" },
+    ]},
+    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado. Alecrim, alecrim dourado que nasceu no campo sem ser semeado.", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'], segments: [
+      { text: "Alecrim alecrim dourado", note: "Mi" },
+      { text: "que nasceu no campo", note: "Sol" },
+      { text: "sem ser semeado", note: "Lá" },
+      { text: "Alecrim alecrim dourado", note: "Sol" },
+      { text: "que nasceu no campo sem ser semeado", note: "Mi" },
+    ]},
+    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha. Borboletinha está na cozinha, fazendo chocolate para a madrinha.", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'], segments: [
+      { text: "Borboletinha está na cozinha", note: "Dó" },
+      { text: "fazendo chocolate", note: "Ré" },
+      { text: "para a madrinha", note: "Mi" },
+      { text: "Borboletinha está na cozinha", note: "Ré" },
+      { text: "fazendo chocolate para a madrinha", note: "Dó" },
+    ]},
+    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada. Samba Lelê precisava de uma boa lambada.", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'], segments: [
+      { text: "Samba Lelê tá doente", note: "Sol" },
+      { text: "tá com a cabeça quebrada", note: "Sol" },
+      { text: "Samba Lelê precisava", note: "Mi" },
+      { text: "de uma boa lambada", note: "Fá" },
+      { text: "Samba Lelê!", note: "Sol" },
+    ]},
+    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta, volta e meia vamos dar.", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'], segments: [
+      { text: "Ciranda cirandinha", note: "Dó" },
+      { text: "vamos todos cirandar", note: "Mi" },
+      { text: "vamos dar a meia volta", note: "Sol" },
+      { text: "volta e meia vamos dar", note: "Mi" },
+      { text: "vamos dar!", note: "Dó" },
+    ]},
+    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver sem a tua companhia?", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'], segments: [
+      { text: "Como pode um peixe vivo", note: "Ré" },
+      { text: "viver fora da água fria", note: "Fá" },
+      { text: "Como poderei viver", note: "Lá" },
+      { text: "sem a tua companhia", note: "Fá" },
+      { text: "sem a tua companhia!", note: "Ré" },
+    ]},
+    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos, 10 num pequeno bote!", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'], segments: [
+      { text: "1 2 3 indiozinhos", note: "Dó" },
+      { text: "4 5 6 indiozinhos", note: "Mi" },
+      { text: "7 8 9 indiozinhos", note: "Sol" },
+      { text: "10 num pequeno bote", note: "Dó⁺" },
+      { text: "navegando pelo rio!", note: "Sol" },
+    ]},
   ];
 
   const allStories = [...storiesList, ...generatedStories];
@@ -744,7 +824,7 @@ export default function ExplorePage() {
                           <motion.div
                             key={idx}
                             whileHover={{ y: -2, scale: 1.01 }}
-                            onClick={() => { setActiveMusicIdx(idx); setIsUsingGenSong(idx >= musicList.length); stopAutoPlay(); }}
+                            onClick={() => { setActiveMusicIdx(idx); setIsUsingGenSong(idx >= musicList.length); stopKaraoke(); }}
                             className="p-4 bg-surface-container-low hover:bg-secondary/5 rounded-2xl border border-outline-variant/30 flex gap-3 items-center cursor-pointer transition-all shadow-sm"
                           >
                             <span className="text-3xl bg-secondary/15 p-2.5 rounded-xl">{m.emoji}</span>
@@ -759,33 +839,80 @@ export default function ExplorePage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className="bg-secondary-container/10 border border-secondary-container p-6 rounded-[2.5rem] text-center space-y-3 relative overflow-hidden">
+                      {/* Karaokê player */}
+                      <div className="bg-gradient-to-br from-secondary-container/20 to-primary-container/10 border border-secondary-container p-6 rounded-[2.5rem] text-center space-y-4 relative overflow-hidden">
                         <span className="absolute top-2 right-2 text-2xl animate-spin duration-3000">🎵</span>
-                        <h4 className="font-sans font-bold text-lg text-secondary">Cantando: {getActiveSong().title}</h4>
-                        <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic max-w-md mx-auto">
-                          &quot;{getActiveSong().lyrics}&quot;
-                        </p>
-                        <div className="flex justify-center gap-1.5 pt-2 flex-wrap">
-                          {getActiveSong().sequence.map((n, i) => (
-                            <span key={i} className="px-3 py-1 bg-surface-container-lowest border border-outline-variant rounded-full text-[10px] font-black uppercase text-primary tracking-widest">{n}</span>
+                        <h4 className="font-sans font-bold text-lg text-secondary">{getActiveSong().title}</h4>
+
+                        {/* Letra com destaque no segmento atual */}
+                        <div className="min-h-[80px] flex items-center justify-center">
+                          <AnimatePresence mode="wait">
+                            {isKaraokePlaying ? (
+                              <motion.p
+                                key={karaokeIndex}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                className="text-sm font-bold text-on-surface leading-relaxed max-w-md mx-auto transition-colors"
+                              >
+                                {(getActiveSong().segments?.[karaokeIndex]?.text || getActiveSong().lyrics)}
+                                <span className="block mt-2 text-[10px] font-black text-secondary tracking-widest">
+                                  Nota: {getActiveSong().segments?.[karaokeIndex]?.note || ''}
+                                </span>
+                              </motion.p>
+                            ) : (
+                              <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic max-w-md mx-auto">
+                                &quot;{getActiveSong().lyrics}&quot;
+                              </p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Barra de progresso */}
+                        {isKaraokePlaying && (
+                          <div className="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+                            <motion.div
+                              className="h-full bg-gradient-to-r from-secondary to-primary rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${((karaokeIndex + 1) / (getActiveSong().segments?.length || getActiveSong().sequence.length)) * 100}%` }}
+                              transition={{ duration: 0.3 }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Sequência de notas com destaque */}
+                        <div className="flex justify-center gap-1.5 pt-1 flex-wrap">
+                          {(getActiveSong().segments || getActiveSong().sequence.map((n, i) => ({ text: '', note: n }))).map((seg, i) => (
+                            <span
+                              key={i}
+                              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                                isKaraokePlaying && i === karaokeIndex
+                                  ? 'bg-secondary text-on-secondary scale-125 shadow-lg'
+                                  : isKaraokePlaying && i < karaokeIndex
+                                  ? 'bg-secondary/30 text-on-surface-variant line-through'
+                                  : 'bg-surface-container-lowest border border-outline-variant text-primary'
+                              }`}
+                            >
+                              {seg.note}
+                            </span>
                           ))}
                         </div>
                       </div>
 
-                      {/* Auto-play melody button */}
+                      {/* Karaokê play/stop button */}
                       <div className="flex justify-center">
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
-                            if (isAutoPlaying) { stopAutoPlay(); }
-                            else { startAutoPlay(getActiveSong().sequence); }
+                            if (isKaraokePlaying) { stopKaraoke(); }
+                            else { startKaraoke(getActiveSong()); }
                           }}
                           className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-2 ${
-                            isAutoPlaying ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
+                            isKaraokePlaying ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
                           }`}
                         >
-                          {isAutoPlaying ? <X size={16} /> : <Play size={16} className="fill-current" />}
-                          {isAutoPlaying ? 'Parar Melodia' : 'Tocar Melodia 🎶'}
+                          {isKaraokePlaying ? <X size={16} /> : <Play size={16} className="fill-current" />}
+                          {isKaraokePlaying ? 'Parar' : 'Cantar Junto 🎤'}
                         </motion.button>
                       </div>
 
