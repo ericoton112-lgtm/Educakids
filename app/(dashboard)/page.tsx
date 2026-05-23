@@ -51,125 +51,6 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true);
 
-    // Auto-inicializar dados mockados se o localStorage estiver limpo (para testes e primeiro uso)
-    const storedStudents = localStorage.getItem('educakids_students');
-    if (!storedStudents) {
-      const defaultStudents = [
-        {
-          id: 'MOCK_1',
-          name: 'Lucas Souza',
-          class: 'Berçário A',
-          behavior: 'smile',
-          notes: 'Muito ativo hoje, adorou as tintas.',
-          color: 'bg-[#FFEBCD] dark:bg-[#5E4E3C]',
-          tags: ['avatar:lion'],
-          age: '1 ano',
-          parentName: 'Renata Souza',
-          emergencyContact: '11999999999'
-        },
-        {
-          id: 'MOCK_2',
-          name: 'Beatriz Lima',
-          class: 'Berçário A',
-          behavior: 'smile',
-          notes: 'Dormiu bem no período da tarde.',
-          color: 'bg-[#FCE4EC] dark:bg-[#5D3A4B]',
-          tags: ['avatar:rabbit'],
-          age: '1 ano',
-          parentName: 'Marcos Lima',
-          emergencyContact: '11988888888'
-        },
-        {
-          id: 'MOCK_3',
-          name: 'Sofia Cruz',
-          class: 'Berçário A',
-          behavior: 'meh',
-          notes: 'Um pouco dengosa pela manhã.',
-          color: 'bg-[#FFE0B2] dark:bg-[#6E4228]',
-          tags: ['avatar:fox'],
-          age: '1 ano',
-          parentName: 'Ana Cruz',
-          emergencyContact: '11977777777'
-        },
-        {
-          id: 'MOCK_4',
-          name: 'Gael Silva',
-          class: 'Berçário A',
-          behavior: 'smile',
-          notes: 'Comeu toda a fruta no lanche.',
-          color: 'bg-[#F5F5F5] dark:bg-[#3C4A52]',
-          tags: ['avatar:panda'],
-          age: '1 ano',
-          parentName: 'Julia Silva',
-          emergencyContact: '11966666666'
-        }
-      ];
-      localStorage.setItem('educakids_students', JSON.stringify(defaultStudents));
-    }
-
-    const monday = startOfWeek(now, { weekStartsOn: 1 });
-    const weekKey = format(monday, 'yyyy-MM-dd');
-    const planKey = `educakids_plan_${weekKey}`;
-    const storedPlan = localStorage.getItem(planKey);
-    if (!storedPlan) {
-      const defaultWeeklyPlan = {
-        theme: 'Animais da Floresta & Texturas',
-        goals: [
-          'Explorar diferentes materiais e texturas (areia, argila, tintas).',
-          'Reconhecer sons de animais comuns.',
-          'Estimular a coordenação motora fina através de colagem.'
-        ],
-        days: [
-          {
-            day: 'Segunda-feira',
-            focus: 'Pintura a dedo com cores da floresta',
-            iconName: 'Palette',
-            iconBg: 'bg-primary/10 text-primary',
-            activities: [
-              { type: 'Arte Sensorial', text: 'Pintura a dedo com cores da floresta' }
-            ]
-          },
-          {
-            day: 'Terça-feira',
-            focus: 'Brincadeira com argila e folhas',
-            iconName: 'Sun',
-            iconBg: 'bg-secondary/10 text-secondary',
-            activities: [
-              { type: 'Exploração', text: 'Brincadeira com argila e folhas' }
-            ]
-          },
-          {
-            day: 'Quarta-feira',
-            focus: 'Sons dos animais da floresta',
-            iconName: 'Sparkles',
-            iconBg: 'bg-tertiary/10 text-tertiary',
-            activities: [
-              { type: 'Música & Ritmo', text: 'Sons dos animais da floresta' }
-            ]
-          },
-          {
-            day: 'Quinta-feira',
-            focus: 'Colagem com folhas secas',
-            iconName: 'CloudRain',
-            iconBg: 'bg-error/10 text-error',
-            activities: [
-              { type: 'Arte & Colagem', text: 'Colagem com folhas secas' }
-            ]
-          },
-          {
-            day: 'Sexta-feira',
-            focus: 'Exploração sensorial com caixa de areia',
-            iconName: 'Star',
-            iconBg: 'bg-warning/10 text-warning',
-            activities: [
-              { type: 'Sensorial', text: 'Exploração sensorial com caixa de areia' }
-            ]
-          }
-        ]
-      };
-      localStorage.setItem(planKey, JSON.stringify(defaultWeeklyPlan));
-    }
-
     // 1. Carregar nome do professor
     const stored = localStorage.getItem('educakids_user');
     if (stored) {
@@ -214,6 +95,9 @@ export default function HomePage() {
     loadProfile();
 
     // 2. Carregar planner da semana atual
+    const monday = startOfWeek(now, { weekStartsOn: 1 });
+    const weekKey = format(monday, 'yyyy-MM-dd');
+    const planKey = `educakids_plan_${weekKey}`;
     const planData = localStorage.getItem(planKey);
     if (planData) {
       try {

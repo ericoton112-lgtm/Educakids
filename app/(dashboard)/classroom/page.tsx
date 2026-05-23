@@ -56,26 +56,7 @@ export default function ClassroomPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [supplies, setSupplies] = useState<SupplyCategory[]>(() => {
     const local = getSupplies();
-    if (local.length > 0) return local;
-    return [
-      { category: 'Papelaria & Escrita', items: [
-        { name: 'Canetinhas Laváveis', val: 'Estoque OK', status: 'ok' },
-        { name: 'Bastões de Cola', val: 'Verificado', status: 'completed' },
-        { name: 'Tesouras Sem Ponta', val: 'Estoque Baixo', status: 'low' },
-        { name: 'Papel Sulfite A4', val: 'Estoque OK', status: 'ok' },
-      ]},
-      { category: 'Artes & Colagem', items: [
-        { name: 'Tintas Guache 6 Cores', val: 'Estoque OK', status: 'ok' },
-        { name: 'Papel Cartão Colorido', val: 'Estoque Baixo', status: 'low' },
-        { name: 'Cola com Glitter', val: 'Verificado', status: 'completed' },
-        { name: 'Massinha de Modelar', val: 'Falta Reposição', status: 'empty' },
-      ]},
-      { category: 'Higiene & Limpeza', items: [
-        { name: 'Lenços Umedecidos', val: 'Estoque OK', status: 'ok' },
-        { name: 'Sabonete Líquido Infantil', val: 'Estoque Baixo', status: 'low' },
-        { name: 'Álcool em Gel 70%', val: 'Verificado', status: 'completed' },
-      ]}
-    ];
+    return local.length > 0 ? local : [];
   });
   const [moodHistory, setMoodHistory] = useState<MoodRecord[]>([]);
 
@@ -103,13 +84,7 @@ export default function ClassroomPage() {
         try {
           const stored = localStorage.getItem('educakids_students');
           if (stored) {
-            const parsed = JSON.parse(stored);
-            const fakeIds = ['LB', 'SC', 'OW', 'AM', 'LS', 'BL', 'EO', 'AC'];
-            if (Array.isArray(parsed) && parsed.some((s: any) => fakeIds.includes(s.id))) {
-              localStorage.removeItem('educakids_students');
-            } else {
-              loadedStudents = parsed;
-            }
+            loadedStudents = JSON.parse(stored);
           }
         } catch { /* ignore */ }
       }

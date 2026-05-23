@@ -209,12 +209,8 @@ export default function PlannerPage() {
   const [dbError, setDbError] = useState(false);
 
   // States do Planejamento ativo
-  const [theme, setTheme] = useState('Pequenos Exploradores: Vida no Jardim');
-  const [goals, setGoals] = useState([
-    'Explorar o conceito de biodiversidade através da observação de insetos no jardim.',
-    'Desenvolver habilidades motoras finas usando materiais de colagem texturizados.',
-    'Praticar o revezamento colaborativo durante as sessões de música em grupo.'
-  ]);
+  const [theme, setTheme] = useState('');
+  const [goals, setGoals] = useState<string[]>([]);
   const [days, setDays] = useState<any[]>([]);
 
   // States do Modal de Criação com IA
@@ -252,23 +248,16 @@ export default function PlannerPage() {
       return {
         day: dayName,
         date: formatDateBr(dayDate),
-        focus: 'Foco do Tema a ser definido',
+        focus: '',
         iconName: icons[idx],
         iconBg: backgrounds[idx],
-        activities: [
-          { type: 'Atividade 1', text: 'Clique em Editar para preencher esta atividade.' },
-          { type: 'Atividade 2', text: 'Clique em Editar para preencher esta atividade.' }
-        ]
+        activities: []
       };
     });
 
     return {
-      theme: 'Tema da Semana',
-      goals: [
-        'Objetivo Geral 1 para desenvolver com a turma.',
-        'Objetivo Geral 2 focado em coordenação motora ou socialização.',
-        'Objetivo Geral 3 alinhado com a BNCC.'
-      ],
+      theme: '',
+      goals: [],
       days: formattedDays
     };
   };
@@ -300,75 +289,7 @@ export default function PlannerPage() {
         }
       }
 
-      // 2. Se for a semana padrão do mock inicial (16 de Outubro de 2023)
-      if (weekKey === '2023-10-16') {
-        setTheme('Pequenos Exploradores: Vida no Jardim');
-        setGoals([
-          'Explorar o conceito de biodiversidade através da observação de insetos no jardim.',
-          'Desenvolver habilidades motoras finas usando materiais de colagem texturizados.',
-          'Praticar o revezamento colaborativo durante as sessões de música em grupo.'
-        ]);
-        setDays([
-          {
-            day: 'Segunda-feira',
-            date: '16 Out',
-            focus: 'A Jornada da Formiga',
-            iconName: 'Sun',
-            iconBg: 'bg-primary-container text-on-primary-container',
-            activities: [
-              { type: 'Roda de Conversa', text: 'Contação de história: "A Formiga Trabalhadora"' },
-              { type: 'Brincadeira Sensorial', text: 'Rastreamento na areia com lupas' },
-            ]
-          },
-          {
-            day: 'Terça-feira',
-            date: '17 Out',
-            focus: 'Cores da Borboleta',
-            iconName: 'Palette',
-            iconBg: 'bg-secondary-container text-on-secondary-container',
-            activities: [
-              { type: 'Oficina de Arte', text: 'Pintura simétrica de borboletas' },
-              { type: 'Passeio no Jardim', text: 'Identificando cores na natureza' },
-            ]
-          },
-          {
-            day: 'Quarta-feira',
-            date: '18 Out',
-            focus: 'Minhocas e Solo',
-            iconName: 'CloudRain',
-            iconBg: 'bg-tertiary-container/40 text-on-tertiary-container',
-            activities: [
-              { type: 'Hub de Ciências', text: 'Observando a caixa de compostagem' },
-              { type: 'Música e Movimento', text: 'Dança rítmica "Mexa-se como minhoca"' },
-            ]
-          },
-          {
-            day: 'Quinta-feira',
-            date: '19 Out',
-            focus: 'Sementes e Brotinhos',
-            iconName: 'Sparkles',
-            iconBg: 'bg-primary-container text-on-primary-container',
-            activities: [
-              { type: 'Plantação Prática', text: 'Plantando sementes de feijão no algodão úmido' },
-              { type: 'Contação de História', text: 'Contação: "A Pequena Semente que Cresceu"' },
-            ]
-          },
-          {
-            day: 'Sexta-feira',
-            date: '20 Out',
-            focus: 'Festa do Jardim',
-            iconName: 'Star',
-            iconBg: 'bg-secondary-container text-on-secondary-container',
-            activities: [
-              { type: 'Expressão Corporal', text: 'Piquenique no Jardim e Caça ao Tesouro dos Bichinhos' },
-              { type: 'Artes Coletivas', text: 'Painel gigante com colagem de folhas e pétalas caídas' },
-            ]
-          }
-        ]);
-        return;
-      }
-
-      // 3. Fallback: Criar novo planejamento padrão em branco para a semana
+      // 2. Fallback: Criar novo planejamento padrão em branco para a semana
       const defaultPlan = getDefaultPlanForWeek(monday);
       setTheme(defaultPlan.theme);
       setGoals(defaultPlan.goals);
