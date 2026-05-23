@@ -64,13 +64,14 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Tema atual
     setIsDark(document.documentElement.classList.contains('dark'));
     setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
+  useEffect(() => {
     // Fallback: metadados do login se não tiver localStorage
     try {
       supabase.auth.getUser().then(({ data: { user } }) => {
@@ -90,15 +91,15 @@ export default function ProfilePage() {
 
     // 3. Estatísticas
     const studentsData = localStorage.getItem('educakids_students');
-    const studentCount = studentsData ? JSON.parse(studentsData!).length : 0;
+    const studentCount = studentsData ? JSON.parse(studentsData).length : 0;
 
     const historyData = localStorage.getItem('educakids_activity_history');
-    const activityCount = historyData ? JSON.parse(historyData!).length : 0;
+    const activityCount = historyData ? JSON.parse(historyData).length : 0;
 
     let plannerCount = 0;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key!.startsWith('educakids_plan_')) plannerCount++;
+      if (key && key.startsWith('educakids_plan_')) plannerCount++;
     }
     setStats({ students: studentCount, activities: activityCount, planners: plannerCount });
 
@@ -111,7 +112,7 @@ export default function ProfilePage() {
     let activity = '';
     if (planData) {
       try {
-        const plan = JSON.parse(planData!);
+        const plan = JSON.parse(planData);
         theme = plan.theme || '';
         const todayIndex = now.getDay() - 1;
         if (todayIndex >= 0 && todayIndex < (plan.days || []).length) {
@@ -120,7 +121,7 @@ export default function ProfilePage() {
         }
       } catch { /* ignore */ }
     }
-    const present = studentsData ? JSON.parse(studentsData!).filter((s: any) => s.behavior !== 'absent').length : 0;
+    const present = studentsData ? JSON.parse(studentsData).filter((s: any) => s.behavior !== 'absent').length : 0;
     setTodaySummary({ theme, present, total: studentCount, activity });
 
     // 5. Conquistas
@@ -175,6 +176,9 @@ export default function ProfilePage() {
     localStorage.setItem('educakids_user', JSON.stringify({
       name: profile.name,
       email: profile.email,
+      classes: profile.classes,
+      school: profile.school,
+      avatar: profile.avatar,
     }));
 
     try {

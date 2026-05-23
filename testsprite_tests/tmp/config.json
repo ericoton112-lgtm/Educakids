@@ -1,0 +1,19 @@
+{
+  "status": "init",
+  "scope": "codebase",
+  "type": "frontend",
+  "localEndpoint": "http://localhost:3000/",
+  "serverPort": 53818,
+  "executionArgs": {
+    "projectName": "educakids",
+    "projectPath": "c:\\Users\\erico\\OneDrive\\Desktop\\educakids",
+    "testIds": [
+      "TC001"
+    ],
+    "additionalInstruction": "Ensure to use example@gmail.com / password123 as the login credentials in the test scripts. The dashboard will now automatically initialize default student and planning data on first load.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-L_XRk8oeINsNa8lBL8TD-EZnxnwOjvt9G7k3dfim5OsIEzGPTf0pzB92JOxMZFt4g02mtN2BSyhHC9HGFo-vOBHg1slgAwVf3CBLfOmdiLisaOoOLVFwwZxnMcS_tZNKSe4"
+    }
+  }
+}

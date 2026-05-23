@@ -25,6 +25,7 @@ interface HistoryItem {
     theme: string;
     difficulty: string;
     activityType: string[];
+    extraInstructions?: string;
   };
   activity: Activity;
 }
@@ -49,6 +50,7 @@ export default function ActivitiesPage() {
     theme: '',
     difficulty: 'Média',
     activityType: ['Pintura'],
+    extraInstructions: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [historyList, setHistoryList] = useState<HistoryItem[]>(() => {
@@ -64,6 +66,48 @@ export default function ActivitiesPage() {
     }
     return [];
   });
+
+  const [configTab, setConfigTab] = useState<'manual' | 'import'>('manual');
+  const [savedPlans, setSavedPlans] = useState<{ weekKey: string; theme: string; days: any[] }[]>([]);
+  const [selectedPlanWeek, setSelectedPlanWeek] = useState<string>('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const themeParam = params.get('theme');
+    const typeParam = params.get('type');
+    const instructionsParam = params.get('instructions');
+    if (themeParam) {
+      setFormData(prev => ({ ...prev, theme: themeParam }));
+    }
+    if (typeParam) {
+      setFormData(prev => ({ ...prev, activityType: [typeParam] }));
+    }
+    if (instructionsParam) {
+      setFormData(prev => ({ ...prev, extraInstructions: instructionsParam }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const plans: { weekKey: string; theme: string; days: any[] }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('educakids_plan_')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '');
+          if (data.theme && data.days) {
+            plans.push({ weekKey: key.replace('educakids_plan_', ''), theme: data.theme, days: data.days });
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    plans.sort((a, b) => b.weekKey.localeCompare(a.weekKey));
+    setSavedPlans(plans);
+    if (plans.length > 0) {
+      setSelectedPlanWeek(plans[0].weekKey);
+    }
+  }, []);
+
+  const activePlan = savedPlans.find(p => p.weekKey === selectedPlanWeek);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -115,7 +159,8 @@ export default function ActivitiesPage() {
         body: JSON.stringify({
           ...formData,
           previousTitlesAndThemes,
-          availableMaterials: availableMaterials || undefined
+          availableMaterials: availableMaterials || undefined,
+          extraInstructions: formData.extraInstructions || undefined,
         }),
       });
       if (!res.ok) {
@@ -184,6 +229,30 @@ export default function ActivitiesPage() {
             <h2 className="font-sans font-bold text-xl text-on-surface">Configuração</h2>
           </div>
 
+          <div className="flex gap-1 bg-surface-container-highest p-1 rounded-full">
+            <button
+              onClick={() => setConfigTab('manual')}
+              className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all ${
+                configTab === 'manual'
+                  ? 'bg-surface-container-lowest text-on-surface shadow-sm border border-outline-variant/30'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Livre (Manual)
+            </button>
+            <button
+              onClick={() => setConfigTab('import')}
+              className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all ${
+                configTab === 'import'
+                  ? 'bg-surface-container-lowest text-on-surface shadow-sm border border-outline-variant/30'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Importar do Planejamento
+            </button>
+          </div>
+
+          {configTab === 'manual' ? (
           <div className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-on-surface-variant ml-2">Faixa Etária</label>
@@ -229,7 +298,83 @@ export default function ActivitiesPage() {
                 ))}
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-on-surface-variant ml-2">
+                Instruções extras para a IA <span className="text-outline font-normal lowercase">(opcional)</span>
+              </label>
+              <textarea
+                value={formData.extraInstructions}
+                onChange={(e) => setFormData({ ...formData, extraInstructions: e.target.value })}
+                placeholder="Ex: relacionar com reciclagem, focar em contagem, usar materiais recicláveis..."
+                className="w-full h-24 px-4 py-3 rounded-2xl border-none bg-surface-container-highest text-on-surface focus:ring-2 focus:ring-primary placeholder:text-outline text-sm resize-none"
+              />
+            </div>
           </div>
+          ) : (
+          <div className="space-y-4">
+            {savedPlans.length === 0 ? (
+              <div className="text-center py-8 text-on-surface-variant/60 space-y-3">
+                <p className="text-sm font-medium">Nenhum planejamento semanal encontrado.</p>
+                <p className="text-xs opacity-75">
+                  Crie um planejamento primeiro na página{' '}
+                  <a href="/planner" className="text-primary font-bold underline underline-offset-2">Planejamento</a>.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-on-surface-variant ml-2">Selecione a Semana</label>
+                  <select
+                    value={selectedPlanWeek}
+                    onChange={(e) => setSelectedPlanWeek(e.target.value)}
+                    className="w-full h-12 px-4 rounded-full border-none bg-surface-container-highest text-on-surface focus:ring-2 focus:ring-primary appearance-none text-sm font-medium"
+                  >
+                    {savedPlans.map((plan) => (
+                      <option key={plan.weekKey} value={plan.weekKey}>
+                        {plan.weekKey} — {plan.theme}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {activePlan && (
+                  <div className="grid grid-cols-1 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    {activePlan.days.map((day: any, idx: number) => (
+                      <motion.button
+                        key={idx}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            theme: day.focus || activePlan.theme,
+                            activityType: day.activities?.[0]?.type
+                              ? [day.activities[0].type]
+                              : prev.activityType,
+                          }));
+                          setConfigTab('manual');
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 hover:border-primary/50 transition-all text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">
+                          {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'][idx] || day.day?.slice(0, 3)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-on-surface truncate">{day.focus || 'Foco do dia'}</p>
+                          <p className="text-[9px] text-on-surface-variant font-medium truncate">
+                            {day.activities?.map((a: any) => a.type).join(', ') || 'Nenhuma atividade'}
+                          </p>
+                        </div>
+                        <Sparkles size={14} className="text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          )}
         </section>
 
         <section className="bg-primary-container/20 p-6 rounded-3xl border border-primary-container/40">
@@ -571,52 +716,60 @@ export default function ActivitiesPage() {
                   </ul>
                 </div>
 
-                <div className="rounded-2xl overflow-hidden aspect-[3/4] md:h-80 border border-outline-variant group bg-white relative flex flex-col justify-between shadow-inner p-5 transition-colors">
+                <div className="rounded-2xl overflow-hidden aspect-[3/4] md:h-80 border-[3px] border-primary/20 group bg-white relative flex flex-col justify-between shadow-inner transition-colors"
+                  style={{
+                    borderImage: 'linear-gradient(135deg, #FF6B6B22, #4ECDC422, #45B7D122, #96CEB422) 1',
+                  }}
+                >
+                  {/* Decorative top stripe */}
+                  <div className="h-2 bg-gradient-to-r from-primary/30 via-secondary/30 to-tertiary/30" />
                   
                   {/* Preview da Folha de Atividade */}
-                  <div className="flex flex-col h-full opacity-90 group-hover:opacity-100 transition-opacity">
-                    <div className="border-b border-outline-variant/50 pb-2 mb-3">
-                      <div className="flex justify-between text-[8px] text-on-surface-variant mb-2">
-                         <span>Nome: _______________________</span>
-                         <span>Data: ___/___/____</span>
+                  <div className="flex flex-col flex-1 opacity-90 group-hover:opacity-100 transition-opacity p-5">
+                    {/* Header with Nome and Data lines */}
+                    <div className="border-b-2 border-outline-variant/60 pb-3 mb-3">
+                      <div className="flex justify-between items-end text-[9px] text-on-surface-variant mb-2">
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold uppercase tracking-wider">Nome:</span>
+                          <span className="border-b border-dashed border-outline-variant/40 w-28 inline-block">&nbsp;</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold uppercase tracking-wider">Data:</span>
+                          <span className="border-b border-dashed border-outline-variant/40 w-16 inline-block">&nbsp;</span>
+                        </div>
                       </div>
-                      <h4 className="font-serif font-bold text-xs text-on-surface line-clamp-1">{activity.title}</h4>
+                      <h4 className="font-bold text-xs text-on-surface line-clamp-1">{activity.title}</h4>
                     </div>
                     
-                    <div className="flex-1 overflow-hidden relative">
-                      <p className="text-[9px] font-bold text-on-surface mb-2">Questões da Folha do Aluno:</p>
-                      <div className="space-y-3">
-                        {(activity.studentQuestions || []).slice(0, 3).map((q, i) => {
-                          const hasIllustration = !!(activity.illustrationPrompts?.[i]);
-                          const displayText = hasIllustration
-                            ? q.replace(/^[\d\.\s]*(Desenhe|desenhe)/, '$& (pinte o desenho)')
-                                .replace(/^[\d\.\s]*(Desenhe|desenhe)/, (m) => m.replace(/Desenhe|desenhe/, 'Pinte'))
-                            : q;
-                          return (
-                           <div key={i}>
-                              <p className="text-[9px] text-on-surface-variant font-medium line-clamp-1">{displayText}</p>
-                              {hasIllustration ? (
-                                <div className="border border-dashed border-primary/30 h-6 w-full rounded flex items-center justify-center bg-primary/5">
-                                  <span className="text-[7px] text-primary font-bold">🎨 Ilustração para colorir</span>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="border-b border-dashed border-outline-variant/50 h-6 w-full"></div>
-                                </>
-                              )}
-                           </div>
-                          );
-                        })}
-                        {activity.studentQuestions && activity.studentQuestions.length > 3 && (
-                           <p className="text-[8px] text-on-surface-variant text-center pt-2 italic">... +{activity.studentQuestions.length - 3} questões</p>
-                        )}
-                      </div>
-                      {/* Fade para caso o texto passe do tamanho */}
-                      <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
+                    <div className="flex-1 overflow-hidden relative space-y-2.5">
+                      <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Questões:</p>
+                      {(activity.studentQuestions || []).slice(0, 3).map((q, i) => {
+                        const hasIllustration = !!(activity.illustrationPrompts?.[i]);
+                        return (
+                          <div key={i} className="space-y-1">
+                            <p className="text-[9px] text-on-surface font-medium leading-snug">
+                              <span className="text-primary font-bold">{i + 1}.</span> {q}
+                            </p>
+                            {hasIllustration ? (
+                              <div className="border-2 border-dashed border-primary/40 h-12 w-full rounded-xl flex items-center justify-center bg-primary/5">
+                                <span className="text-[8px] text-primary font-bold flex items-center gap-1">🎨 Espaço para desenho</span>
+                              </div>
+                            ) : (
+                              <div className="border-b border-dashed border-outline-variant/40 h-6 w-full ml-3"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {activity.studentQuestions && activity.studentQuestions.length > 3 && (
+                        <p className="text-[8px] text-on-surface-variant text-center pt-1 italic">... +{activity.studentQuestions.length - 3} questões</p>
+                      )}
+                      {/* Fade */}
+                      <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
                     </div>
                     
-                    <div className="mt-auto pt-2 border-t border-outline-variant/50 flex justify-between items-center text-[8px] text-on-surface-variant uppercase tracking-widest">
+                    <div className="mt-auto pt-2 border-t border-outline-variant/40 flex justify-between items-center text-[8px] text-on-surface-variant uppercase tracking-widest">
                       <span>Folha do Aluno</span>
+                      <span className="text-primary/60">✏️ Colorir & Responder</span>
                     </div>
                   </div>
 
@@ -690,7 +843,7 @@ export default function ActivitiesPage() {
                     key={item.id}
                     onClick={() => {
                       setActivity(item.activity);
-                      setFormData(item.formData);
+                      setFormData({ ...item.formData, extraInstructions: '' });
                     }}
                     className={`p-4 rounded-2xl bg-surface-container-lowest border cursor-pointer transition-all hover:scale-[1.02] flex justify-between items-start gap-3 group ${
                       activity?.title === item.activity.title 

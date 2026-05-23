@@ -51,8 +51,10 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [bnccFilter, setBnccFilter] = useState('todos');
 
-  // TTS
+  // TTS + Karaoke word highlighting
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentWordIndex, setCurrentWordIndex] = useState<number>(-1);
+  const [speakingWords, setSpeakingWords] = useState<string[]>([]);
   const ttsRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // AI Generation
@@ -187,18 +189,37 @@ export default function ExplorePage() {
     playSegment(0);
   };
 
-  // TTS
+  // TTS + Karaoke word highlighting
   const speakText = (text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
+    const words = text.split(/(\s+)/);
+    setSpeakingWords(words);
+    setCurrentWordIndex(-1);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
     ttsRef.current = utterance;
+    let charCount = 0;
+    let wordIdx = 0;
+    utterance.onboundary = (e) => {
+      if (e.name === 'word') {
+        let accumulated = 0;
+        for (let i = 0; i < words.length; i++) {
+          if (words[i].trim()) {
+            if (accumulated >= e.charIndex) {
+              setCurrentWordIndex(i);
+              break;
+            }
+            accumulated += words[i].length;
+          }
+        }
+      }
+    };
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onend = () => { setIsSpeaking(false); setCurrentWordIndex(-1); };
+    utterance.onerror = () => { setIsSpeaking(false); setCurrentWordIndex(-1); };
     window.speechSynthesis.speak(utterance);
   };
 
@@ -207,12 +228,14 @@ export default function ExplorePage() {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+    setCurrentWordIndex(-1);
   };
 
   const handleListenStory = (text: string) => {
     if (isSpeaking) {
       stopSpeaking();
     } else {
+      setCurrentWordIndex(-1);
       speakText(text);
     }
   };
@@ -256,6 +279,8 @@ export default function ExplorePage() {
     stopSpeaking();
     setIsUsingGenerated(false);
     setIsUsingGenSong(false);
+    setCurrentWordIndex(-1);
+    setSpeakingWords([]);
   };
 
   const [storyStep, setStoryStep] = useState(0);
@@ -344,14 +369,14 @@ export default function ExplorePage() {
   ];
 
   const musicList: Song[] = [
-    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou. Já passou a chuva, o sol já vai surgindo, e a Dona Aranha de novo vai subindo!", videoId: "yW-A5S-p894", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'], segments: [
+    { title: "A Dona Aranha 🕷️", desc: "Clássico infantil sobre persistência.", emoji: "🕷️", lyrics: "A Dona Aranha subiu pela parede, veio a chuva forte e a derrubou. Já passou a chuva, o sol já vai surgindo, e a Dona Aranha de novo vai subindo!", videoId: "MuBgIfBR1kA", sequence: ['Dó', 'Ré', 'Mi', 'Fá', 'Sol'], segments: [
       { text: "A Dona Aranha subiu pela parede", note: "Dó" },
       { text: "veio a chuva forte e a derrubou", note: "Ré" },
       { text: "Já passou a chuva, o sol já vai surgindo", note: "Mi" },
       { text: "e a Dona Aranha de novo vai subindo", note: "Fá" },
       { text: "de novo vai subindo!", note: "Sol" },
     ]},
-    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu. No céu escuro a brilhar, que alegria em te olhar!", videoId: "g4p0_gS6_oY", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'], segments: [
+    { title: "Brilha Estrelinha ⭐", desc: "Toque as notas recomendadas para a melodia.", emoji: "⭐", lyrics: "Brilha, brilha, estrelinha, quero ver você brilhar no céu. No céu escuro a brilhar, que alegria em te olhar!", videoId: "ZPiX-KZ2oT8", sequence: ['Dó', 'Dó', 'Sol', 'Sol', 'Lá', 'Lá', 'Sol'], segments: [
       { text: "Brilha", note: "Dó" },
       { text: "brilha", note: "Dó" },
       { text: "estrelinha", note: "Sol" },
@@ -360,14 +385,14 @@ export default function ExplorePage() {
       { text: "que alegria", note: "Lá" },
       { text: "em te olhar!", note: "Sol" },
     ]},
-    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão. Quando ele pia, ele faz assim: piu, piu, piu, piu!", videoId: "57k4K5u7DqM", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'], segments: [
+    { title: "Pintinho Amarelinho 🐥", desc: "Acompanhe com o bumbo e caixa da bateria real!", emoji: "🐥", lyrics: "Meu pintinho amarelinho, cabe aqui na minha mão, na minha mão. Quando ele pia, ele faz assim: piu, piu, piu, piu!", videoId: "59GM_xjPhco", sequence: ['Mi', 'Mi', 'Ré', 'Ré', 'Dó'], segments: [
       { text: "Meu pintinho amarelinho", note: "Mi" },
       { text: "cabe aqui na minha mão", note: "Mi" },
       { text: "na minha mão", note: "Ré" },
       { text: "quando ele pia ele faz assim", note: "Ré" },
       { text: "piu piu piu piu!", note: "Dó" },
     ]},
-    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai, cai, balão, cai, cai, balão, aqui na minha mão. Não cai não, não cai não, cai na rua do sabão!", videoId: "J2zU32FwSj8", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'], segments: [
+    { title: "Cai Cai Balão 🎈", desc: "Alegre canção de festa junina.", emoji: "🎈", lyrics: "Cai, cai, balão, cai, cai, balão, aqui na minha mão. Não cai não, não cai não, cai na rua do sabão!", videoId: "N1yziW3_mg0", sequence: ['Fá', 'Fá', 'Mi', 'Mi', 'Ré', 'Dó'], segments: [
       { text: "Cai cai balão", note: "Fá" },
       { text: "cai cai balão", note: "Fá" },
       { text: "aqui na minha mão", note: "Mi" },
@@ -375,42 +400,42 @@ export default function ExplorePage() {
       { text: "não cai não", note: "Ré" },
       { text: "cai na rua do sabão!", note: "Dó" },
     ]},
-    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado. Alecrim, alecrim dourado que nasceu no campo sem ser semeado.", videoId: "s3G9C9X1Xw0", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'], segments: [
+    { title: "Alecrim Dourado 🌱", desc: "Suave e calma melodia do campo.", emoji: "🌱", lyrics: "Alecrim, alecrim dourado que nasceu no campo sem ser semeado. Alecrim, alecrim dourado que nasceu no campo sem ser semeado.", videoId: "NAL4isDM4D0", sequence: ['Mi', 'Sol', 'Lá', 'Sol', 'Mi'], segments: [
       { text: "Alecrim alecrim dourado", note: "Mi" },
       { text: "que nasceu no campo", note: "Sol" },
       { text: "sem ser semeado", note: "Lá" },
       { text: "Alecrim alecrim dourado", note: "Sol" },
       { text: "que nasceu no campo sem ser semeado", note: "Mi" },
     ]},
-    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha. Borboletinha está na cozinha, fazendo chocolate para a madrinha.", videoId: "9o4v6p842Bw", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'], segments: [
+    { title: "Borboletinha 🦋", desc: "Divertida canção de cozinha das fadas.", emoji: "🦋", lyrics: "Borboletinha está na cozinha, fazendo chocolate para a madrinha. Borboletinha está na cozinha, fazendo chocolate para a madrinha.", videoId: "28iW_O5qWfU", sequence: ['Dó', 'Ré', 'Mi', 'Ré', 'Dó'], segments: [
       { text: "Borboletinha está na cozinha", note: "Dó" },
       { text: "fazendo chocolate", note: "Ré" },
       { text: "para a madrinha", note: "Mi" },
       { text: "Borboletinha está na cozinha", note: "Ré" },
       { text: "fazendo chocolate para a madrinha", note: "Dó" },
     ]},
-    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada. Samba Lelê precisava de uma boa lambada.", videoId: "M2Q1bU-fWSw", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'], segments: [
+    { title: "Samba Lelê 💃", desc: "Ritmo folclórico brasileiro clássico.", emoji: "💃", lyrics: "Samba Lelê tá doente, tá com a cabeça quebrada. Samba Lelê precisava de uma boa lambada.", videoId: "zKOubVELVNw", sequence: ['Sol', 'Sol', 'Mi', 'Fá', 'Sol'], segments: [
       { text: "Samba Lelê tá doente", note: "Sol" },
       { text: "tá com a cabeça quebrada", note: "Sol" },
       { text: "Samba Lelê precisava", note: "Mi" },
       { text: "de uma boa lambada", note: "Fá" },
       { text: "Samba Lelê!", note: "Sol" },
     ]},
-    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta, volta e meia vamos dar.", videoId: "1-0d3tT5Uu4", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'], segments: [
+    { title: "Ciranda Cirandinha ⭕", desc: "Ritmo de roda tradicional.", emoji: "⭕", lyrics: "Ciranda, cirandinha, vamos todos cirandar. Vamos dar a meia volta, volta e meia vamos dar.", videoId: "qzEcHMqqcuE", sequence: ['Dó', 'Mi', 'Sol', 'Mi', 'Dó'], segments: [
       { text: "Ciranda cirandinha", note: "Dó" },
       { text: "vamos todos cirandar", note: "Mi" },
       { text: "vamos dar a meia volta", note: "Sol" },
       { text: "volta e meia vamos dar", note: "Mi" },
       { text: "vamos dar!", note: "Dó" },
     ]},
-    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver sem a tua companhia?", videoId: "S-A0vM-r45E", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'], segments: [
+    { title: "Peixe Vivo 🐟", desc: "Linda cantiga mineira sobre companheirismo.", emoji: "🐟", lyrics: "Como pode um peixe vivo viver fora da água fria? Como poderei viver sem a tua companhia?", videoId: "47tkq-YHWp0", sequence: ['Ré', 'Fá', 'Lá', 'Fá', 'Ré'], segments: [
       { text: "Como pode um peixe vivo", note: "Ré" },
       { text: "viver fora da água fria", note: "Fá" },
       { text: "Como poderei viver", note: "Lá" },
       { text: "sem a tua companhia", note: "Fá" },
       { text: "sem a tua companhia!", note: "Ré" },
     ]},
-    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos, 10 num pequeno bote!", videoId: "yXwQ4b1zZCo", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'], segments: [
+    { title: "Indiozinhos 🛶", desc: "Ótima cantiga para praticar contagem.", emoji: "🛶", lyrics: "1, 2, 3 indiozinhos, 4, 5, 6 indiozinhos, 7, 8, 9 indiozinhos, 10 num pequeno bote!", videoId: "R4vtOUWCMGo", sequence: ['Dó', 'Mi', 'Sol', 'Dó⁺', 'Sol'], segments: [
       { text: "1 2 3 indiozinhos", note: "Dó" },
       { text: "4 5 6 indiozinhos", note: "Mi" },
       { text: "7 8 9 indiozinhos", note: "Sol" },
@@ -684,7 +709,7 @@ export default function ExplorePage() {
 
               <div className="flex items-center gap-3">
                 {(activeStoryIdx !== null || activeMusicIdx !== null || activeGameIdx !== null) && (
-                  <button onClick={() => { setActiveStoryIdx(null); setActiveMusicIdx(null); setActiveGameIdx(null); setIsUsingGenerated(false); setIsUsingGenSong(false); }}
+                  <button onClick={() => { setActiveStoryIdx(null); setActiveMusicIdx(null); setActiveGameIdx(null); setIsUsingGenerated(false); setIsUsingGenSong(false); stopSpeaking(); setCurrentWordIndex(-1); setSpeakingWords([]); }}
                     className="p-2 bg-surface-container text-on-surface hover:bg-primary/15 rounded-full transition-colors"
                   ><ChevronLeft size={20} /></button>
                 )}
@@ -735,7 +760,23 @@ export default function ExplorePage() {
                     <div className="space-y-6">
                       <div className={`p-8 rounded-[2.5rem] bg-gradient-to-br ${getActiveStory().pages[storyStep].bg} text-center space-y-4 shadow-inner relative overflow-hidden transition-all duration-500 min-h-[200px] flex flex-col justify-center`}>
                         <div className="text-6xl animate-bounce duration-1000 mb-1">{getActiveStory().pages[storyStep].emoji}</div>
-                        <p className="text-sm font-bold leading-relaxed max-w-md mx-auto">{getActiveStory().pages[storyStep].text}</p>
+                        <p className="text-sm font-bold leading-relaxed max-w-md mx-auto">
+                          {(isSpeaking && speakingWords.length > 0 ? speakingWords : getActiveStory().pages[storyStep].text.split(/(\s+)/)).map((word, i) => {
+                            if (!word.trim()) return <span key={i}>{word}</span>;
+                            return (
+                              <span
+                                key={i}
+                                className={`transition-colors duration-150 rounded ${
+                                  isSpeaking && i === currentWordIndex
+                                    ? 'bg-primary/20 text-primary px-1 -mx-1'
+                                    : ''
+                                }`}
+                              >
+                                {word}
+                              </span>
+                            );
+                          })}
+                        </p>
                       </div>
 
                       <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30 space-y-4 flex flex-col items-center">
@@ -759,6 +800,7 @@ export default function ExplorePage() {
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             playXyloNote(380 + storyStep * 60, 'sine', 0.4);
+                            stopSpeaking();
                             if (storyStep === getActiveStory().pages.length - 1) {
                               setActiveStoryIdx(null);
                             } else {

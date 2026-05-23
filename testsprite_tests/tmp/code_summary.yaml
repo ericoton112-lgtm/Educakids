@@ -1,0 +1,86 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - Next.js (App Router)
+  - Motion
+  - Lucide React
+  - Tailwind CSS
+  - Supabase
+routes:
+  - path: /
+    file: app/(dashboard)/page.tsx
+    auth_required: false
+    description: Dashboard inicial com agenda, humor da turma, presença e focos do dia.
+  - path: /activities
+    file: app/(dashboard)/activities/page.tsx
+    auth_required: false
+    description: Gerador de atividades pedagógicas lúdicas personalizadas com inteligência artificial.
+  - path: /planner
+    file: app/(dashboard)/planner/page.tsx
+    auth_required: false
+    description: Planejamento semanal e calendário com sugestões pedagógicas e feriados nacionais.
+  - path: /classroom
+    file: app/(dashboard)/classroom/page.tsx
+    auth_required: false
+    description: Painel de gerenciamento de alunos, chamada de presença e registros de comportamento.
+features:
+  - name: Painel Principal do Professor (Dashboard)
+    description: Exibe resumo de chamada, clima/humor da turma, próxima atividade planejada, agenda semanal resumida e focos do dia.
+    files:
+      - app/(dashboard)/page.tsx
+      - app/components/ModoAula.tsx
+    entry_route: /
+    user_interactions:
+      - Visualizar a data e a saudação personalizada
+      - Iniciar ou concluir a atividade do dia (ativar o Modo Aula)
+      - Adicionar e marcar como concluídos os itens de Foco de Hoje
+    api_calls: []
+    auth_required: false
+  - name: Gerador de Atividades com IA
+    description: Cria atividades práticas com parâmetros configuráveis pela professora (faixa etária, tema, tipo e dificuldade) via API do Gemini.
+    files:
+      - app/(dashboard)/activities/page.tsx
+      - app/api/genai/activity/route.ts
+    entry_route: /activities
+    user_interactions:
+      - Alterar Faixa Etária no seletor
+      - Digitar o Tema no campo de texto
+      - Escolher a Dificuldade Cognitiva
+      - Marcar os Tipos de Atividades
+      - Clicar no botão "Gerar com IA"
+      - Visualizar e imprimir a folha com ilustrações geradas
+    api_calls:
+      - method: POST
+        endpoint: /api/genai/activity
+    auth_required: false
+  - name: Planejador Semanal Integrado
+    description: Agenda semanal com focos diários, objetivos pedagógicos alinhados com a BNCC e sugestões de dicas de ouro dinâmicas baseadas no tema.
+    files:
+      - app/(dashboard)/planner/page.tsx
+      - app/api/genai/planner/route.ts
+      - app/components/modals/CreatePlannerModal.tsx
+    entry_route: /planner
+    user_interactions:
+      - Selecionar a semana clicando nos dias do calendário
+      - Clicar em "Criar Planejamento" e escolher gerar com IA ou criar em branco
+      - Editar diretamente os objetivos e os focos de cada dia
+      - Clicar em "Salvar" para gravar no banco de dados local/nuvem
+    api_calls:
+      - method: POST
+        endpoint: /api/genai/planner
+    auth_required: false
+  - name: Gestão de Alunos (Sala de Aula)
+    description: Controle de presença diário e acompanhamento comportamental dos alunos.
+    files:
+      - app/(dashboard)/classroom/page.tsx
+      - app/components/modals/AddStudentModal.tsx
+      - app/components/modals/EditStudentModal.tsx
+    entry_route: /classroom
+    user_interactions:
+      - Fazer a chamada dos alunos (Presente ou Ausente)
+      - Registrar reações comportamentais (Feliz, Neutro, Triste)
+      - Adicionar e editar perfis de alunos com fotos ou etiquetas
+    api_calls: []
+    auth_required: false
+known_limitations: []

@@ -32,6 +32,21 @@ export default function ClassroomPage() {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState('comportamento');
   const [activeClass, setActiveClass] = useState('Berçário A');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'comportamento' || tabParam === 'inventario') {
+      setActiveTab(tabParam);
+    }
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const el = document.querySelector(hash);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, []);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isAddSupplyOpen, setIsAddSupplyOpen] = useState(false);
   const [selectedStudentForAvatar, setSelectedStudentForAvatar] = useState<string | null>(null);
@@ -434,9 +449,22 @@ export default function ClassroomPage() {
                   >{c}</button>
                 ))}
               </div>
-              <motion.button whileTap={{ scale: 0.95 }} onClick={() => setIsAddStudentOpen(true)}
-                className="inline-flex items-center justify-center gap-1.5 bg-primary text-on-primary font-black text-xs uppercase tracking-wider px-5 py-3 rounded-full shadow-md hover:bg-primary/95 transition-colors self-start sm:self-auto"
-              ><Plus size={16} /> Adicionar Aluno</motion.button>
+              <div className="flex gap-2">
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setStudents(prev => {
+                      const updated = prev.map(s => s.class === activeClass ? { ...s, behavior: 'smile' as const } : s);
+                      saveStudents(updated);
+                      updated.filter(s => s.class === activeClass).forEach(s => syncStudentToDb(s));
+                      return updated;
+                    });
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 bg-secondary/10 text-secondary font-black text-xs uppercase tracking-wider px-4 py-3 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors self-start sm:self-auto"
+                ><Check size={14} /> Marcar Presença Geral</motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setIsAddStudentOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 bg-primary text-on-primary font-black text-xs uppercase tracking-wider px-5 py-3 rounded-full shadow-md hover:bg-primary/95 transition-colors self-start sm:self-auto"
+                ><Plus size={16} /> Adicionar Aluno</motion.button>
+              </div>
             </div>
 
             {classStudents.length === 0 ? (
@@ -557,7 +585,7 @@ export default function ClassroomPage() {
             )}
 
             {/* Mood History Chart */}
-            <section className="space-y-4 pt-4">
+            <section id="mood-chart" className="space-y-4 pt-4">
               <div className="flex items-center gap-2">
                 <BarChart3 size={18} className="text-primary" />
                 <h3 className="font-sans font-bold text-lg text-on-surface">Histórico de Humor</h3>
@@ -567,6 +595,12 @@ export default function ClassroomPage() {
           </motion.div>
         ) : (
           <motion.section key="inventario" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+            <div className="bg-tertiary-container/20 border border-tertiary/20 rounded-3xl p-4 flex items-start gap-3">
+              <Sparkles size={20} className="text-tertiary shrink-0 mt-0.5" />
+              <div className="text-xs font-medium text-on-surface leading-relaxed">
+                <span className="font-bold text-tertiary">Dica da IA:</span> Itens marcados como <span className="font-bold">&ldquo;Estoque OK&rdquo;</span> são priorizados pela Inteligência Artificial na hora de sugerir e criar folhas de atividades, garantindo que os materiais recomendados estejam sempre disponíveis na sua sala.
+              </div>
+            </div>
             <div className="flex justify-between items-center gap-4">
               <p className="text-sm font-semibold text-on-surface-variant">Sinalize o estado de conservação e quantidade clicando no badge circular de status.</p>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => setIsAddSupplyOpen(true)}

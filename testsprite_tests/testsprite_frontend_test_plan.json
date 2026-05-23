@@ -1,0 +1,510 @@
+[
+  {
+    "id": "TC001",
+    "title": "Review the daily classroom snapshot and open the current activity",
+    "description": "Verifies that a teacher can review today’s classroom overview and launch the current day activity from the dashboard.",
+    "category": "Painel Principal do Professor (Dashboard)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the daily greeting and date are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the class summary and mood overview are displayed"
+      },
+      {
+        "type": "action",
+        "description": "Open the current day activity in Modo Aula"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the current day activity view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Mark classroom attendance for all students",
+    "description": "Verify a teacher can review the student list and mark attendance for each student in the classroom.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Review the student list"
+      },
+      {
+        "type": "action",
+        "description": "Mark each student as present or absent"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the attendance status is recorded for the classroom"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the classroom status summary is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Take attendance and record a student reaction",
+    "description": "Verifies that a classroom educator can mark class attendance, add a student behavior reaction, and confirm the classroom status updates.",
+    "category": "Painel de gerenciamento de alunos e presença",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Mark class attendance"
+      },
+      {
+        "type": "action",
+        "description": "Record a behavioral reaction for a student"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the classroom status is updated"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student reaction is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Mark a dashboard focus item complete",
+    "description": "Verifies that a teacher can complete a focus item from today’s dashboard and see it reflected as completed.",
+    "category": "Painel Principal do Professor (Dashboard)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Add a focus item for today"
+      },
+      {
+        "type": "action",
+        "description": "Mark the focus item as completed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the completed focus item is shown as done"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Complete attendance and classroom status review flow",
+    "description": "Verify a teacher can mark attendance, record a behavior reaction, and confirm the classroom status in one classroom management session.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Review the student list"
+      },
+      {
+        "type": "action",
+        "description": "Mark the required attendance statuses"
+      },
+      {
+        "type": "action",
+        "description": "Register a behavior reaction for a student"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the classroom status"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the classroom summary reflects the latest attendance and behavior updates"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the classroom status confirmation is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Create a blank weekly plan for a selected week",
+    "description": "Verifies that a teacher can choose a week, create a blank plan, edit daily planning details, and save it successfully.",
+    "category": "Planejador Semanal Integrado",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /planner"
+      },
+      {
+        "type": "action",
+        "description": "Select a week from the calendar"
+      },
+      {
+        "type": "action",
+        "description": "Create a new blank planning"
+      },
+      {
+        "type": "action",
+        "description": "Edit the daily objectives and focus items"
+      },
+      {
+        "type": "action",
+        "description": "Save the planning"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved weekly planning is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Create an AI-assisted weekly plan and refine it before saving",
+    "description": "Verifies that a teacher can generate a weekly plan with AI, review the suggested structure, make edits, and save the result.",
+    "category": "Planejador Semanal Integrado",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /planner"
+      },
+      {
+        "type": "action",
+        "description": "Select a week from the calendar"
+      },
+      {
+        "type": "action",
+        "description": "Create a new planning with AI"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the suggested weekly structure is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Edit the daily objectives and focus items"
+      },
+      {
+        "type": "action",
+        "description": "Save the planning"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved weekly planning is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Generate and review a custom AI activity sheet",
+    "description": "Verifies that a teacher can configure activity parameters, generate a personalized sheet, and review the result.",
+    "category": "Gerador de Atividades com IA",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /activities"
+      },
+      {
+        "type": "action",
+        "description": "Select an age group"
+      },
+      {
+        "type": "action",
+        "description": "Enter a theme"
+      },
+      {
+        "type": "action",
+        "description": "Choose a cognitive difficulty"
+      },
+      {
+        "type": "action",
+        "description": "Mark one or more activity types"
+      },
+      {
+        "type": "action",
+        "description": "Generate with AI"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the generated activity sheet is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Record a student behavior reaction",
+    "description": "Verify a teacher can register a daily behavior reaction for an individual student and see it reflected in the classroom view.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Review the student list"
+      },
+      {
+        "type": "action",
+        "description": "Register a behavior reaction for a student"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student's behavior reaction is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated student record is shown in the classroom view"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Add a new student profile and update an existing one",
+    "description": "Verifies that a classroom coordinator can create a student profile and then edit an existing profile so the roster reflects the updated data.",
+    "category": "Painel de gerenciamento de alunos e presença",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Add a new student profile"
+      },
+      {
+        "type": "action",
+        "description": "Edit an existing student profile"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated roster data is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC011",
+    "title": "Create a complete classroom roster from scratch",
+    "description": "Verify a teacher can add a new student and then edit that student so the roster contains the latest profile information.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Open the add student form"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the student details"
+      },
+      {
+        "type": "action",
+        "description": "Save the new student profile"
+      },
+      {
+        "type": "action",
+        "description": "Open the newly added student profile for editing"
+      },
+      {
+        "type": "action",
+        "description": "Update the student details"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the roster includes the new student with updated details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the classroom list reflects the saved profile changes"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC012",
+    "title": "Add a new student profile",
+    "description": "Verify a teacher can add a new student profile and see the new student included in the roster.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Open the add student form"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the student details"
+      },
+      {
+        "type": "action",
+        "description": "Save the new student profile"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new student appears in the roster"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student profile is available in the classroom list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC013",
+    "title": "Edit an existing student profile",
+    "description": "Verify a teacher can update an existing student profile and see the edited roster data reflected.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing student profile for editing"
+      },
+      {
+        "type": "action",
+        "description": "Update the student details"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated student information is shown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the roster reflects the edited profile"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC014",
+    "title": "Open a planned activity to prefill activity generation",
+    "description": "Verifies that a teacher can start from a saved planner item and see the activity generator prefilled with the linked theme and activity type.",
+    "category": "Planejador Semanal Integrado",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /planner"
+      },
+      {
+        "type": "action",
+        "description": "Select a saved day or activity in the weekly view"
+      },
+      {
+        "type": "action",
+        "description": "Open the linked activity generation flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the activity generator opens with prefilled planning data"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC015",
+    "title": "Print a generated activity sheet",
+    "description": "Verifies that a teacher can print an already generated activity sheet from the activity generator.",
+    "category": "Gerador de Atividades com IA",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /activities"
+      },
+      {
+        "type": "action",
+        "description": "Generate an activity sheet"
+      },
+      {
+        "type": "action",
+        "description": "Review the generated activity sheet"
+      },
+      {
+        "type": "action",
+        "description": "Print the activity sheet with illustrations"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the printable activity view is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC016",
+    "title": "Record behavior for a selected student after reviewing the roster",
+    "description": "Verify a teacher can choose a student from the roster, assign a behavior reaction, and see the behavior entry retained in the classroom view.",
+    "category": "Gestão de Alunos (Sala de Aula)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /classroom"
+      },
+      {
+        "type": "action",
+        "description": "Review the student list"
+      },
+      {
+        "type": "action",
+        "description": "Select a student from the roster"
+      },
+      {
+        "type": "action",
+        "description": "Register a behavior reaction for that student"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected student's behavior reaction is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the behavior entry is shown in the classroom view"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

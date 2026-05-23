@@ -2,17 +2,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Plus, ChevronRight, Sun, X, Play, Check, CloudRain, Palette, Sparkles, Star, Users, Smile, Meh, Frown, BarChart3, Loader2, BookOpen } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, AlertCircle, CheckCircle, Plus, ChevronRight, Sun, X, Play, Check, CloudRain, Palette, Sparkles, Star, Users, Smile, Meh, Frown, BarChart3, Loader2, BookOpen, LayoutGrid, ClipboardList } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { startOfWeek, format } from 'date-fns';
 import ModoAula from '@/app/components/ModoAula';
 
 export default function HomePage() {
   const supabase = createClient();
+  const router = useRouter();
   const [teacherName, setTeacherName] = useState('Professora');
   const [teacherClass, setTeacherClass] = useState('');
   const [mounted, setMounted] = useState(false);
+
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
+  const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
   // Dados do Planner
   const [todayActivity, setTodayActivity] = useState<{ title: string; time: string; type: string; steps?: { title: string; content: string }[] } | null>(null);
@@ -45,6 +50,125 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true);
+
+    // Auto-inicializar dados mockados se o localStorage estiver limpo (para testes e primeiro uso)
+    const storedStudents = localStorage.getItem('educakids_students');
+    if (!storedStudents) {
+      const defaultStudents = [
+        {
+          id: 'MOCK_1',
+          name: 'Lucas Souza',
+          class: 'Berçário A',
+          behavior: 'smile',
+          notes: 'Muito ativo hoje, adorou as tintas.',
+          color: 'bg-[#FFEBCD] dark:bg-[#5E4E3C]',
+          tags: ['avatar:lion'],
+          age: '1 ano',
+          parentName: 'Renata Souza',
+          emergencyContact: '11999999999'
+        },
+        {
+          id: 'MOCK_2',
+          name: 'Beatriz Lima',
+          class: 'Berçário A',
+          behavior: 'smile',
+          notes: 'Dormiu bem no período da tarde.',
+          color: 'bg-[#FCE4EC] dark:bg-[#5D3A4B]',
+          tags: ['avatar:rabbit'],
+          age: '1 ano',
+          parentName: 'Marcos Lima',
+          emergencyContact: '11988888888'
+        },
+        {
+          id: 'MOCK_3',
+          name: 'Sofia Cruz',
+          class: 'Berçário A',
+          behavior: 'meh',
+          notes: 'Um pouco dengosa pela manhã.',
+          color: 'bg-[#FFE0B2] dark:bg-[#6E4228]',
+          tags: ['avatar:fox'],
+          age: '1 ano',
+          parentName: 'Ana Cruz',
+          emergencyContact: '11977777777'
+        },
+        {
+          id: 'MOCK_4',
+          name: 'Gael Silva',
+          class: 'Berçário A',
+          behavior: 'smile',
+          notes: 'Comeu toda a fruta no lanche.',
+          color: 'bg-[#F5F5F5] dark:bg-[#3C4A52]',
+          tags: ['avatar:panda'],
+          age: '1 ano',
+          parentName: 'Julia Silva',
+          emergencyContact: '11966666666'
+        }
+      ];
+      localStorage.setItem('educakids_students', JSON.stringify(defaultStudents));
+    }
+
+    const monday = startOfWeek(now, { weekStartsOn: 1 });
+    const weekKey = format(monday, 'yyyy-MM-dd');
+    const planKey = `educakids_plan_${weekKey}`;
+    const storedPlan = localStorage.getItem(planKey);
+    if (!storedPlan) {
+      const defaultWeeklyPlan = {
+        theme: 'Animais da Floresta & Texturas',
+        goals: [
+          'Explorar diferentes materiais e texturas (areia, argila, tintas).',
+          'Reconhecer sons de animais comuns.',
+          'Estimular a coordenação motora fina através de colagem.'
+        ],
+        days: [
+          {
+            day: 'Segunda-feira',
+            focus: 'Pintura a dedo com cores da floresta',
+            iconName: 'Palette',
+            iconBg: 'bg-primary/10 text-primary',
+            activities: [
+              { type: 'Arte Sensorial', text: 'Pintura a dedo com cores da floresta' }
+            ]
+          },
+          {
+            day: 'Terça-feira',
+            focus: 'Brincadeira com argila e folhas',
+            iconName: 'Sun',
+            iconBg: 'bg-secondary/10 text-secondary',
+            activities: [
+              { type: 'Exploração', text: 'Brincadeira com argila e folhas' }
+            ]
+          },
+          {
+            day: 'Quarta-feira',
+            focus: 'Sons dos animais da floresta',
+            iconName: 'Sparkles',
+            iconBg: 'bg-tertiary/10 text-tertiary',
+            activities: [
+              { type: 'Música & Ritmo', text: 'Sons dos animais da floresta' }
+            ]
+          },
+          {
+            day: 'Quinta-feira',
+            focus: 'Colagem com folhas secas',
+            iconName: 'CloudRain',
+            iconBg: 'bg-error/10 text-error',
+            activities: [
+              { type: 'Arte & Colagem', text: 'Colagem com folhas secas' }
+            ]
+          },
+          {
+            day: 'Sexta-feira',
+            focus: 'Exploração sensorial com caixa de areia',
+            iconName: 'Star',
+            iconBg: 'bg-warning/10 text-warning',
+            activities: [
+              { type: 'Sensorial', text: 'Exploração sensorial com caixa de areia' }
+            ]
+          }
+        ]
+      };
+      localStorage.setItem(planKey, JSON.stringify(defaultWeeklyPlan));
+    }
 
     // 1. Carregar nome do professor
     const stored = localStorage.getItem('educakids_user');
@@ -90,9 +214,7 @@ export default function HomePage() {
     loadProfile();
 
     // 2. Carregar planner da semana atual
-    const monday = startOfWeek(now, { weekStartsOn: 1 });
-    const weekKey = format(monday, 'yyyy-MM-dd');
-    const planData = localStorage.getItem(`educakids_plan_${weekKey}`);
+    const planData = localStorage.getItem(planKey);
     if (planData) {
       try {
         const plan = JSON.parse(planData);
@@ -128,6 +250,9 @@ export default function HomePage() {
         setTotalStudents(students.length);
         setPresentCount(students.filter((s: any) => s.behavior !== 'absent').length);
         setAbsentCount(students.filter((s: any) => s.behavior === 'absent').length);
+        setSmileCount(students.filter((s: any) => s.behavior === 'smile').length);
+        setMehCount(students.filter((s: any) => s.behavior === 'meh').length);
+        setSadCount(students.filter((s: any) => s.behavior === 'sad').length);
       } catch { /* ignore */ }
     }
 
@@ -139,6 +264,18 @@ export default function HomePage() {
       } catch { /* ignore */ }
     }
   }, [supabase, now]);
+
+  useEffect(() => {
+    if (countdownValue === null) return;
+    if (countdownValue <= 0) {
+      setCountdownValue(null);
+      setIsModoAulaOpen(true);
+      setIsStarted(true);
+      return;
+    }
+    const timer = setTimeout(() => setCountdownValue(prev => (prev as number) - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownValue]);
 
   // Salvar focos no localStorage
   const saveFocusItems = (items: { id: number; title: string; done: boolean }[]) => {
@@ -247,9 +384,10 @@ export default function HomePage() {
                       { title: 'Encerramento', content: 'Faça uma roda de conversa sobre o que aprenderam.' },
                     ]
                   );
-                  setIsModoAulaOpen(true);
+                  setCountdownValue(3);
+                } else {
+                  setIsStarted(!isStarted);
                 }
-                setIsStarted(!isStarted);
               }}
               className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-md flex items-center gap-2 transition-colors duration-300 shrink-0 ${
                 isStarted 
@@ -267,7 +405,7 @@ export default function HomePage() {
         </div>
 
         {/* Card Resumo da Sala */}
-        <Link href="/classroom" className="block">
+        <Link href="/classroom?tab=comportamento#presenca" className="block">
           <motion.div 
             whileTap={{ scale: 0.98 }}
             className="bg-secondary-container/40 text-on-secondary-container p-4 rounded-2xl border border-secondary/10 flex flex-col justify-between h-32 relative overflow-hidden group"
@@ -284,7 +422,7 @@ export default function HomePage() {
         </Link>
 
         {/* Card de Humor da Turma */}
-        <Link href="/classroom" className="block">
+        <Link href="/classroom?tab=comportamento#mood-chart" className="block">
           <motion.div 
             whileTap={{ scale: 0.98 }}
             className="bg-tertiary-container/40 text-on-tertiary-container p-4 rounded-2xl border border-tertiary/10 flex flex-col justify-between h-32"
@@ -465,15 +603,109 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* FAB - Botão Flutuante */}
-      <div className="fixed bottom-24 right-6 z-40">
-        <motion.button 
+      {/* Countdown Overlay */}
+      <AnimatePresence>
+        {countdownValue !== null && countdownValue > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md flex items-center justify-center"
+          >
+            <motion.div
+              key={countdownValue}
+              initial={{ scale: 2, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="text-9xl font-black text-white drop-shadow-2xl"
+            >
+              {countdownValue}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FAB Speed Dial */}
+      <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3">
+        <AnimatePresence>
+          {isSpeedDialOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.05 }}
+              >
+                <button
+                  onClick={() => { setIsSpeedDialOpen(false); setIsModalOpen(true); }}
+                  className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface px-4 py-2.5 rounded-full shadow-lg text-xs font-bold hover:bg-primary-container/20 transition-all"
+                >
+                  <Plus size={14} className="text-primary" />
+                  Novo Foco
+                </button>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Link
+                  href="/classroom?tab=comportamento"
+                  onClick={() => setIsSpeedDialOpen(false)}
+                  className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface px-4 py-2.5 rounded-full shadow-lg text-xs font-bold hover:bg-secondary-container/20 transition-all"
+                >
+                  <ClipboardList size={14} className="text-secondary" />
+                  Registrar Presença
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.15 }}
+              >
+                <Link
+                  href="/activities"
+                  onClick={() => setIsSpeedDialOpen(false)}
+                  className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface px-4 py-2.5 rounded-full shadow-lg text-xs font-bold hover:bg-tertiary-container/20 transition-all"
+                >
+                  <Sparkles size={14} className="text-tertiary" />
+                  Gerar Atividade
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Link
+                  href="/planner"
+                  onClick={() => setIsSpeedDialOpen(false)}
+                  className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface px-4 py-2.5 rounded-full shadow-lg text-xs font-bold hover:bg-primary-container/20 transition-all"
+                >
+                  <CalendarIcon size={14} className="text-primary" />
+                  Ver Planejamento
+                </Link>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsSpeedDialOpen(!isSpeedDialOpen)}
           className="w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center border-2 border-white/20"
         >
-          <Plus size={32} />
+          <motion.div
+            animate={{ rotate: isSpeedDialOpen ? 45 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Plus size={32} />
+          </motion.div>
         </motion.button>
       </div>
 

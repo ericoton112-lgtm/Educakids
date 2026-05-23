@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { 
   Edit3, 
   CheckCircle, 
@@ -11,6 +12,7 @@ import {
   Palette, 
   ChevronRight, 
   ChevronLeft, 
+  ChevronDown,
   Save, 
   X, 
   Plus, 
@@ -195,9 +197,12 @@ function getTipsForTheme(themeStr: string) {
 }
 
 export default function PlannerPage() {
+  const router = useRouter();
   const supabase = createClient();
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [holidayTooltip, setHolidayTooltip] = useState<{ date: Date; name: string; x: number; y: number } | null>(null);
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -830,6 +835,18 @@ export default function PlannerPage() {
                         </div>
                       ))}
                     </div>
+
+                    {!isEditing && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => router.push(`/activities?theme=${encodeURIComponent(wd.focus)}&type=${encodeURIComponent(wd.activities?.[0]?.type || '')}`)}
+                        className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] uppercase tracking-wider px-3 py-2.5 rounded-xl border border-primary/20 transition-all"
+                      >
+                        <Sparkles size={12} />
+                        Gerar Folha com IA
+                      </motion.button>
+                    )}
                   </motion.div>
                 );
               })}
@@ -891,108 +908,158 @@ export default function PlannerPage() {
 
         {/* Lado Direito: Calendário Interativo e Feriados Brasileiros (4/12) */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-surface-container border border-outline-variant rounded-3xl p-5 shadow-sm space-y-4">
-            
-            {/* Header do Calendário: Navegador de Meses */}
-            <div className="flex items-center justify-between pb-2 border-b border-outline-variant/50">
-              <span className="font-sans font-bold text-sm text-on-surface capitalize">
+          {/* Mobile Toggle */}
+          <div className="lg:hidden">
+            <button
+              onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+              className="w-full flex items-center justify-between bg-surface-container border border-outline-variant rounded-3xl p-4 shadow-sm"
+            >
+              <span className="font-sans font-bold text-sm text-on-surface flex items-center gap-2">
+                <Calendar size={16} className="text-primary" />
                 {monthsLong[currentMonth.getMonth()]} {currentMonth.getFullYear()}
               </span>
-              <div className="flex gap-1">
-                <button 
-                  onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all border border-outline-variant/30 text-on-surface"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button 
-                  onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all border border-outline-variant/30 text-on-surface"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Dias da Semana (D, S, T, Q...) */}
-            <div className="grid grid-cols-7 text-center">
-              {weekdays.map((d, i) => (
-                <span key={i} className="text-[10px] font-black text-on-surface-variant/70 uppercase py-1">
-                  {d}
+              <motion.div
+                animate={{ rotate: isCalendarOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown size={20} className="text-on-surface-variant" />
+              </motion.div>
+            </button>
+          </div>
+          <div className={isCalendarOpen ? 'block' : 'hidden lg:block'}>
+            <div className="bg-surface-container border border-outline-variant rounded-3xl p-5 shadow-sm space-y-4">
+              
+              {/* Header do Calendário: Navegador de Meses */}
+              <div className="flex items-center justify-between pb-2 border-b border-outline-variant/50">
+                <span className="font-sans font-bold text-sm text-on-surface capitalize">
+                  {monthsLong[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </span>
-              ))}
-            </div>
-
-            {/* Grade dos Dias */}
-            <div className="grid grid-cols-7 gap-1">
-              {gridDays.map((day, idx) => {
-                const isCurrentMonthDay = isSameMonth(day, currentMonth);
-                const holidayName = holidays[getHolidayKey(day)];
-                const isSelectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-                const isDayWeekStart = startOfWeek(day, { weekStartsOn: 1 });
-                const isInSelectedWeek = isSameDay(isSelectedWeekStart, isDayWeekStart);
-                const isDayToday = isToday(day);
-
-                // Classes de estilo do dia
-                let dayStyles = "h-8 w-full flex items-center justify-center rounded-lg text-xs transition-all relative font-medium ";
-                
-                if (isSameDay(selectedDate, day)) {
-                  dayStyles += "bg-primary text-on-primary font-black shadow-sm z-10 scale-105 ";
-                } else if (isInSelectedWeek) {
-                  // Destaca a semana inteira selecionada
-                  dayStyles += "bg-primary/10 text-primary font-bold ";
-                } else if (isCurrentMonthDay) {
-                  dayStyles += "text-on-surface hover:bg-surface-container-high cursor-pointer ";
-                } else {
-                  dayStyles += "text-on-surface/30 hover:bg-surface-container-high/40 cursor-pointer ";
-                }
-
-                if (isDayToday && !isSameDay(selectedDate, day)) {
-                  dayStyles += "border border-primary/50 ";
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setSelectedDate(day);
-                      // Se clicar em um dia de outro mês, navega o calendário para aquele mês
-                      if (!isSameMonth(day, currentMonth)) {
-                        setCurrentMonth(day);
-                      }
-                    }}
-                    title={holidayName ? `Feriado: ${holidayName}` : undefined}
-                    className={dayStyles}
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all border border-outline-variant/30 text-on-surface"
                   >
-                    <span>{day.getDate()}</span>
-                    
-                    {/* Indicador de Feriado */}
-                    {holidayName && (
-                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-error" />
-                    )}
+                    <ChevronLeft size={16} />
                   </button>
-                );
-              })}
-            </div>
-
-            {/* Lista de Feriados do Mês Corrente */}
-            {monthHolidays.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-outline-variant/50 space-y-2">
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
-                  Feriados de {monthsLong[currentMonth.getMonth()]}
-                </p>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                  {monthHolidays.map((h, idx) => (
-                    <div key={idx} className="flex items-center gap-2.5 text-xs text-on-surface font-semibold bg-surface-container-low p-2 rounded-xl border border-outline-variant/20">
-                      <span className="w-5 h-5 flex items-center justify-center bg-error/10 text-error text-[10px] font-black rounded-full shrink-0">
-                        {h.date.getDate()}
-                      </span>
-                      <span className="truncate flex-1" title={h.name}>{h.name}</span>
-                    </div>
-                  ))}
+                  <button 
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all border border-outline-variant/30 text-on-surface"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
               </div>
-            )}
+
+              {/* Dias da Semana (D, S, T, Q...) */}
+              <div className="grid grid-cols-7 text-center">
+                {weekdays.map((d, i) => (
+                  <span key={i} className="text-[10px] font-black text-on-surface-variant/70 uppercase py-1">
+                    {d}
+                  </span>
+                ))}
+              </div>
+
+              {/* Grade dos Dias */}
+              <div className="grid grid-cols-7 gap-1">
+                {gridDays.map((day, idx) => {
+                  const isCurrentMonthDay = isSameMonth(day, currentMonth);
+                  const holidayName = holidays[getHolidayKey(day)];
+                  const isSelectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+                  const isDayWeekStart = startOfWeek(day, { weekStartsOn: 1 });
+                  const isInSelectedWeek = isSameDay(isSelectedWeekStart, isDayWeekStart);
+                  const isDayToday = isToday(day);
+
+                  let dayStyles = "h-8 w-full flex items-center justify-center rounded-lg text-xs transition-all relative font-medium ";
+                  
+                  if (isSameDay(selectedDate, day)) {
+                    dayStyles += "bg-primary text-on-primary font-black shadow-sm z-10 scale-105 ";
+                  } else if (isInSelectedWeek) {
+                    dayStyles += "bg-primary/10 text-primary font-bold ";
+                  } else if (isCurrentMonthDay) {
+                    dayStyles += "text-on-surface hover:bg-surface-container-high cursor-pointer ";
+                  } else {
+                    dayStyles += "text-on-surface/30 hover:bg-surface-container-high/40 cursor-pointer ";
+                  }
+
+                  if (isDayToday && !isSameDay(selectedDate, day)) {
+                    dayStyles += "border border-primary/50 ";
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        setSelectedDate(day);
+                        if (!isSameMonth(day, currentMonth)) {
+                          setCurrentMonth(day);
+                        }
+                        if (holidayName) {
+                          const rect = (e.target as HTMLElement).getBoundingClientRect();
+                          setHolidayTooltip({
+                            date: day,
+                            name: holidayName,
+                            x: rect.left + rect.width / 2,
+                            y: rect.bottom + 4,
+                          });
+                          setTimeout(() => setHolidayTooltip(null), 4000);
+                        }
+                      }}
+                      className={dayStyles}
+                    >
+                      <span>{day.getDate()}</span>
+                      
+                      {holidayName && (
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-error" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Holiday Tooltip */}
+              <AnimatePresence>
+                {holidayTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                    className="bg-surface-container-high border border-outline-variant/30 rounded-2xl p-3 shadow-xl"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">📅</span>
+                      <div>
+                        <p className="text-xs font-bold text-on-surface">{holidayTooltip.name}</p>
+                        <p className="text-[10px] text-on-surface-variant mt-0.5">
+                          {holidayTooltip.date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                        </p>
+                        <p className="text-[9px] text-primary font-medium mt-1 italic">
+                          Sugestão: Aproveite a data para atividades temáticas e contação de histórias relacionadas ao feriado.
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Lista de Feriados do Mês Corrente */}
+              {monthHolidays.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-outline-variant/50 space-y-2">
+                  <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
+                    Feriados de {monthsLong[currentMonth.getMonth()]}
+                  </p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {monthHolidays.map((h, idx) => (
+                      <div key={idx} className="flex items-center gap-2.5 text-xs text-on-surface font-semibold bg-surface-container-low p-2 rounded-xl border border-outline-variant/20">
+                        <span className="w-5 h-5 flex items-center justify-center bg-error/10 text-error text-[10px] font-black rounded-full shrink-0">
+                          {h.date.getDate()}
+                        </span>
+                        <span className="truncate flex-1" title={h.name}>{h.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
