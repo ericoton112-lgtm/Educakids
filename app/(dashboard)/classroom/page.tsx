@@ -84,7 +84,13 @@ export default function ClassroomPage() {
         try {
           const stored = localStorage.getItem('educakids_students');
           if (stored) {
-            loadedStudents = JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            const fakeIds = ['MOCK_1', 'MOCK_2', 'MOCK_3', 'MOCK_4', 'LB', 'SC', 'OW', 'AM', 'LS', 'BL', 'EO', 'AC'];
+            if (Array.isArray(parsed) && parsed.some((s: any) => fakeIds.includes(s.id))) {
+              localStorage.removeItem('educakids_students');
+            } else {
+              loadedStudents = parsed;
+            }
           }
         } catch { /* ignore */ }
       }

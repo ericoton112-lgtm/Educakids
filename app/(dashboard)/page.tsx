@@ -51,6 +51,38 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true);
 
+    // Limpeza de dados mockados legados do localStorage
+    const mockStudentIds = ['MOCK_1', 'MOCK_2', 'MOCK_3', 'MOCK_4'];
+    const storedStudents = localStorage.getItem('educakids_students');
+    if (storedStudents) {
+      try {
+        const students = JSON.parse(storedStudents);
+        if (Array.isArray(students) && students.some((s: any) => mockStudentIds.includes(s.id))) {
+          localStorage.removeItem('educakids_students');
+        }
+      } catch { /* ignore */ }
+    }
+    const mockPlanThemes = ['Animais da Floresta & Texturas', 'Tema da Semana'];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('educakids_plan_')) {
+        try {
+          const plan = JSON.parse(localStorage.getItem(key) || '{}');
+          if (plan.theme && mockPlanThemes.includes(plan.theme)) {
+            localStorage.removeItem(key);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    if (localStorage.getItem('educakids_activity_history')) {
+      try {
+        const history = JSON.parse(localStorage.getItem('educakids_activity_history') || '[]');
+        if (!Array.isArray(history) || history.length === 0 || history.some((h: any) => h.formData?.theme === '')) {
+          localStorage.removeItem('educakids_activity_history');
+        }
+      } catch { /* ignore */ }
+    }
+
     // 1. Carregar nome do professor
     const stored = localStorage.getItem('educakids_user');
     if (stored) {

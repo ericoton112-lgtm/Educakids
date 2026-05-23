@@ -275,6 +275,20 @@ export default function PlannerPage() {
     const weekKey = format(monday, 'yyyy-MM-dd');
     
     const loadPlan = () => {
+      // Limpeza de planos mockados legados
+      const mockPlanThemes = ['Animais da Floresta & Texturas', 'Tema da Semana', 'Pequenos Exploradores: Vida no Jardim'];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('educakids_plan_')) {
+          try {
+            const p = JSON.parse(localStorage.getItem(k) || '{}');
+            if (p.theme && mockPlanThemes.includes(p.theme)) {
+              localStorage.removeItem(k);
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
       // 1. Tentar ler do localStorage
       const localSaved = localStorage.getItem(`educakids_plan_${weekKey}`);
       if (localSaved) {
