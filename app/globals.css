@@ -56,3 +56,130 @@
     --color-on-tertiary-container: #f0c958;
   }
 }
+
+/* Configurações de Impressão */
+@media print {
+  /* Oculta tudo que está no body, exceto o contêiner de impressão */
+  body > *:not(.print-only) {
+    display: none !important;
+  }
+
+  /* Garante cores de fundo claras e formatação adequada para papel A4 */
+  html, body {
+    background: white !important;
+    color: #111 !important;
+    font-family: 'Segoe UI', system-ui, sans-serif !important;
+    line-height: 1.6 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #111 !important;
+  }
+
+  .print-only .student-header {
+    margin-bottom: 30px;
+    border: 1px solid #ccc;
+    padding: 18px 20px;
+    border-radius: 8px;
+  }
+
+  .print-only .student-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .print-only .student-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .print-only .header-title {
+    text-align: center;
+    border-bottom: 2px solid #222;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+  }
+
+  .print-only .header-title h1 {
+    font-size: 22px;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .print-only .meta {
+    font-size: 11px;
+    color: #e67e22;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+
+  .print-only .question-block {
+    margin-bottom: 35px;
+    page-break-inside: avoid;
+  }
+
+  .print-only .question-text {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #222;
+  }
+
+  .print-only .answer-line {
+    border-bottom: 1px dashed #999;
+    height: 35px;
+    margin-bottom: 8px;
+  }
+
+  .print-only .drawing-img {
+    max-width: 100%;
+    height: auto;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 8px;
+    box-sizing: border-box;
+    display: block;
+    margin: 8px auto 0;
+  }
+
+  .print-only .drawing-box {
+    border: 2px dashed #ccc;
+    height: 200px;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+
+  .print-only .footer {
+    margin-top: 50px;
+    text-align: center;
+    font-size: 10px;
+    color: #aaa;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+

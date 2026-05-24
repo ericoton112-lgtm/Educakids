@@ -782,7 +782,11 @@ export default function ActivitiesPage() {
                         startPrintJob(activity);
                       }
                     }}
-                    className={`absolute bottom-5 left-1/2 -translate-x-1/2 ${isPrinting ? 'bg-surface-container-high text-on-surface' : 'bg-primary text-on-primary'} px-5 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-2xl hover:scale-105 active:scale-95 transition-all z-20 ${isPrinting ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} translate-y-4 group-hover:translate-y-0 w-max`}
+                    className={`absolute bottom-5 left-1/2 -translate-x-1/2 ${
+                      isPrinting 
+                        ? 'bg-surface-container-high text-on-surface opacity-100 translate-y-0' 
+                        : 'bg-primary text-on-primary opacity-100 md:opacity-0 md:group-hover:opacity-100 translate-y-0 md:translate-y-4 md:group-hover:translate-y-0'
+                    } px-5 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-2xl hover:scale-105 active:scale-95 transition-all z-20 w-max`}
                   >
                     {isPrinting ? (
                       <>

@@ -39,11 +39,16 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
   const [printProgress, setPrintProgress] = useState('');
   const [printError, setPrintError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const printDivRef = useRef<HTMLDivElement | null>(null);
 
   const cancelPrintJob = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    if (printDivRef.current && document.body.contains(printDivRef.current)) {
+      document.body.removeChild(printDivRef.current);
+    }
+    printDivRef.current = null;
     setIsPrinting(false);
     setPrintProgress('');
     setPrintError(null);
@@ -170,94 +175,81 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
           </div>`;
       }).join('');
 
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
-      iframe.style.zIndex = '-9999';
-      document.body.appendChild(iframe);
+      // Cria o contêiner de impressão no DOM principal
+      const printDiv = document.createElement('div');
+      printDiv.className = 'print-only';
+      printDiv.innerHTML = `
+        <div class="student-header">
+          <div class="student-row">
+            <span style="flex:1;"><strong>NOME:</strong> _______________________________________________</span>
+          </div>
+          <div class="student-row">
+            <span style="width:50%;"><strong>TURMA:</strong> _________________</span>
+            <span style="width:50%;"><strong>DATA:</strong> ____ / ____ / ________</span>
+          </div>
+        </div>
+        <div class="header-title">
+          <h1>${activity.title}</h1>
+          <div class="meta">Atividade ${activity.type} de Artes e Descoberta</div>
+        </div>
+        <div class="questions">${questionsHtml}</div>
+        <div class="footer">Folha de Atividade · Gerada por IA · Educakids</div>
+      `;
+      printDivRef.current = printDiv;
+      document.body.appendChild(printDiv);
 
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data === 'print-done') {
-          setIsPrinting(false);
-          setPrintProgress('');
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-          window.removeEventListener('message', handleMessage);
+      const imgs = Array.from(printDiv.querySelectorAll('.drawing-img')) as HTMLImageElement[];
+
+      const cleanup = () => {
+        if (printDivRef.current && document.body.contains(printDivRef.current)) {
+          document.body.removeChild(printDivRef.current);
         }
+        printDivRef.current = null;
+        setIsPrinting(false);
+        setPrintProgress('');
+        window.removeEventListener('afterprint', cleanup);
       };
-      window.addEventListener('message', handleMessage);
 
-      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
-      if (iframeDoc) {
-        iframeDoc.write(`
-          <html>
-            <head>
-              <title>Atividade - ${activity.title}</title>
-              <style>
-                @page { margin: 2cm; }
-                body { font-family: 'Segoe UI', system-ui, sans-serif; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                .student-header { margin-bottom: 30px; border: 1px solid #ccc; padding: 18px 20px; border-radius: 8px; }
-                .student-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
-                .student-row:last-child { margin-bottom: 0; }
-                .header-title { text-align: center; border-bottom: 2px solid #222; padding-bottom: 15px; margin-bottom: 30px; }
-                .header-title h1 { font-size: 22px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 1px; }
-                .meta { font-size: 11px; color: #e67e22; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; }
-                .question-block { margin-bottom: 35px; page-break-inside: avoid; }
-                .question-text { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #222; }
-                .answer-line { border-bottom: 1px dashed #999; height: 35px; margin-bottom: 8px; }
-                .drawing-img { max-width: 100%; height: auto; border: 2px dashed #ccc; border-radius: 10px; padding: 8px; box-sizing: border-box; display: block; margin: 8px auto 0; }
-                .drawing-box { border: 2px dashed #ccc; height: 200px; border-radius: 10px; margin-top: 8px; }
-                .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 20px; text-transform: uppercase; letter-spacing: 2px; }
-              </style>
-            </head>
-            <body>
-              <div class="student-header">
-                <div class="student-row">
-                  <span style="flex:1;"><strong>NOME:</strong> _______________________________________________</span>
-                </div>
-                <div class="student-row">
-                  <span style="width:50%;"><strong>TURMA:</strong> _________________</span>
-                  <span style="width:50%;"><strong>DATA:</strong> ____ / ____ / ________</span>
-                </div>
-              </div>
-              <div class="header-title">
-                <h1>${activity.title}</h1>
-                <div class="meta">Atividade ${activity.type} de Artes e Descoberta</div>
-              </div>
-              <div class="questions">${questionsHtml}</div>
-              <div class="footer">Folha de Atividade · Gerada por IA · Educakids</div>
-              <script>
-                var imgs = Array.from(document.querySelectorAll('.drawing-img'));
-                var doPrint = function() {
-                  setTimeout(function() {
-                    window.print();
-                    window.parent.postMessage('print-done', '*');
-                  }, 500);
-                };
-                if (imgs.length === 0) {
-                  doPrint();
-                } else {
-                  var done = 0;
-                  var check = function() { if (++done >= imgs.length) doPrint(); };
-                  imgs.forEach(function(img) {
-                    if (img.complete) { check(); }
-                    else { img.onload = check; img.onerror = check; }
-                  });
-                  setTimeout(doPrint, 15000);
-                }
-              </script>
-            </body>
-          </html>
-        `);
-        iframeDoc.close();
+      const doPrint = () => {
+        setTimeout(() => {
+          if (abortControllerRef.current?.signal.aborted) return;
+          window.addEventListener('afterprint', cleanup);
+          window.print();
+        }, 500);
+      };
+
+      if (imgs.length === 0) {
+        doPrint();
+      } else {
+        let done = 0;
+        const check = () => {
+          done++;
+          if (done >= imgs.length) {
+            doPrint();
+          }
+        };
+        imgs.forEach((img) => {
+          if (img.complete) {
+            check();
+          } else {
+            img.onload = check;
+            img.onerror = check;
+          }
+        });
+        setTimeout(() => {
+          if (done < imgs.length) {
+            doPrint();
+          }
+        }, 15000);
       }
     } catch (err: any) {
       if (err.message !== 'Cancelado pelo usuário') {
         setPrintError(err.message || 'Erro ao gerar PDF');
       }
+      if (printDivRef.current && document.body.contains(printDivRef.current)) {
+        document.body.removeChild(printDivRef.current);
+      }
+      printDivRef.current = null;
       setIsPrinting(false);
       setPrintProgress('');
     }
