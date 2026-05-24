@@ -55,6 +55,14 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
   };
 
   const startPrintJob = async (activity: Activity) => {
+    // Remove qualquer contêiner de impressão anterior existente
+    try {
+      const existing = document.body.querySelector('.print-only');
+      if (existing && document.body.contains(existing)) {
+        document.body.removeChild(existing);
+      }
+    } catch (e) { /* ignore */ }
+
     setIsPrinting(true);
     setPrintProgress('Iniciando geração...');
     setPrintError(null);
@@ -201,10 +209,8 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
       const imgs = Array.from(printDiv.querySelectorAll('.drawing-img')) as HTMLImageElement[];
 
       const cleanup = () => {
-        if (printDivRef.current && document.body.contains(printDivRef.current)) {
-          document.body.removeChild(printDivRef.current);
-        }
-        printDivRef.current = null;
+        // Redefine apenas o estado do React para habilitar o botão novamente
+        // NÃO removemos o contêiner DOM aqui para evitar o bug de página em branco no celular
         setIsPrinting(false);
         setPrintProgress('');
         window.removeEventListener('afterprint', cleanup);
@@ -215,6 +221,22 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
           if (abortControllerRef.current?.signal.aborted) return;
           window.addEventListener('afterprint', cleanup);
           window.print();
+
+          // Redefine o estado após 2 segundos caso o afterprint não seja disparado
+          setTimeout(() => {
+            setIsPrinting(false);
+            setPrintProgress('');
+          }, 2000);
+
+          // Remove o elemento do DOM de forma segura após 30 segundos, tempo suficiente para a renderização do PDF
+          setTimeout(() => {
+            if (printDiv && document.body.contains(printDiv)) {
+              document.body.removeChild(printDiv);
+            }
+            if (printDivRef.current === printDiv) {
+              printDivRef.current = null;
+            }
+          }, 30000);
         }, 500);
       };
 

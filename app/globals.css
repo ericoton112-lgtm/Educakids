@@ -59,8 +59,8 @@
 
 /* Configurações de Impressão */
 @media print {
-  /* Oculta tudo que está no body, exceto o contêiner de impressão */
-  body > *:not(.print-only) {
+  /* Oculta tudo que está no body, exceto o contêiner de impressão, tags de estilo, links e scripts */
+  body > *:not(.print-only):not(style):not(link):not(script) {
     display: none !important;
   }
 
