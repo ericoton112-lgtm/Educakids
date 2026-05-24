@@ -57,10 +57,12 @@ export async function POST(req: NextRequest) {
     - NÃO use emojis em nenhum campo.
     - Os passos (steps) devem ter texto limpo e objetivo, sem símbolos decorativos.
     - A propriedade 'studentQuestions' deve ter no MÁXIMO 5 itens.
-    - Para questões de pintura/desenho, use verbos como "Desenhe" ou "Pinte" no início da frase.
+    - RELAÇÃO COM OS TIPOS DE ATIVIDADE: 
+      * Se "Pintura" ESTIVER no Tipo de Atividade, você DEVE incluir questões de pintura/desenho. Para essas questões, use verbos como "Desenhe", "Pinte", "Colorir" ou "Ilustre" no início da frase, e forneça a respectiva descrição visual em inglês no array 'illustrationPrompts'.
+      * Se "Pintura" NÃO ESTIVER no Tipo de Atividade (por exemplo, se for apenas Alfabetização, Cognitiva e/ou Motora), você NÃO DEVE incluir NENHUMA questão de desenhar, pintar, colorir ou ilustrar. Todas as questões devem ser de resposta escrita, completar, relacionar ou tarefas motoras/cognitivas sem desenho. Nesse caso, o array 'illustrationPrompts' deve conter APENAS strings vazias "".
     - Para questões de resposta escrita, formule perguntas diretas sem instruções de desenho.
     - O campo 'type' deve ser curto, ex: "Atividade Interna" ou "Atividade Sensorial".
-      - REGRA CRÍTICA PARA IMAGENS: A propriedade 'illustrationPrompts' deve ser um array de strings com o mesmo tamanho exato do array 'studentQuestions'. Para TODA pergunta que exija desenhar, colorir ou pintar, você DEVE OBRIGATORIAMENTE fornecer uma descrição visual rica, detalhada e EM INGLÊS focada no objeto que a criança deve desenhar. NUNCA deixe vazio para perguntas de desenho. Para perguntas puramente de texto, forneça uma string vazia "".${avoidDuplicateClause}${materialsClause}
+      - REGRA CRÍTICA PARA IMAGENS: A propriedade 'illustrationPrompts' deve ser um array de strings com o mesmo tamanho exato do array 'studentQuestions'. Para TODA pergunta que exija desenhar, colorir ou pintar (quando "Pintura" estiver ativa), você DEVE OBRIGATORIAMENTE fornecer uma descrição visual rica, detalhada e EM INGLÊS focada no objeto que a criança deve desenhar. NUNCA deixe vazio para perguntas de desenho. Para perguntas puramente de texto, forneça uma string vazia "".${avoidDuplicateClause}${materialsClause}
     - DICIONÁRIO VISUAL CULTURAL: Modelos de imagem em inglês não entendem o folclore brasileiro. Se a atividade for de Festa Junina, traduza OBRIGATORIAMENTE o 'illustrationPrompts' usando estes termos exatos para evitar erros:
       * Balão de São João/Festa Junina -> "a diamond-shaped paper lantern, origami style balloon" (NUNCA use "hot air balloon")
       * Bandeirinhas -> "a string of triangular party pennants hanging"
@@ -120,14 +122,33 @@ export async function POST(req: NextRequest) {
 
 function getMockResponse(theme: string, typesString: string, ageGroup: string, difficulty: string) {
   const themeLower = (theme || "").toLowerCase();
+  const hasPintura = typesString.toLowerCase().includes("pintura");
   
   if (themeLower.includes("junina") || themeLower.includes("são joão")) {
+    const studentQuestions = [
+      "1. Escreva os nomes de três coisas que vemos na fogueira de São João.",
+      "2. Quantas bandeirinhas você consegue contar na decoração da sala?",
+      "3. O que usamos hoje para fazer a lenha da nossa fogueira?",
+      "4. Qual comida típica de Festa Junina você acha mais gostosa?",
+      "5. Escreva uma palavra que comece com a letra B de Balão."
+    ];
+    const illustrationPrompts = ["", "", "", "", ""];
+
+    if (hasPintura) {
+      studentQuestions[0] = "1. Desenhe no espaço abaixo como ficou a sua fogueira com os palitos.";
+      studentQuestions[1] = "2. Desenhe um lindo varal cheio de bandeirinhas no espaço abaixo:";
+      studentQuestions[4] = "5. Desenhe você e seus amigos dançando quadrilha.";
+      illustrationPrompts[0] = "a cute bonfire made of popsicle sticks with fire flames";
+      illustrationPrompts[1] = "a beautiful clothesline with colorful festival flags hanging in the sky";
+      illustrationPrompts[4] = "happy children wearing traditional country festival costumes dancing together in a circle";
+    }
+
     return {
       title: `Atividade Prática: ${typesString} com Festas Juninas`,
       ageRange: ageGroup,
       duration: "45-60 min",
       type: typesString,
-      description: `Uma atividade imersiva de Festas Juninas! As crianças irão explorar as cores, formas e tradições da época (fogueira, bandeirinhas, balões) através de ${typesString}, estimulando a coordenação motora e a criatividade.`,
+      description: `Uma atividade imersiva de Festas Juninas! As crianças irão explorar as cores, formas e tradições da época (fogueira, bandeirinhas, balões) através de ${typesString}, estimulando o desenvolvimento através de ${typesString}.`,
       materials: [
         "Papel kraft, cartolina ou papel pardo (1 por aluno)",
         "Tintas guache (vermelho, amarelo, laranja para a fogueira)",
@@ -154,23 +175,27 @@ function getMockResponse(theme: string, typesString: string, ageGroup: string, d
           content: "Coloquem todos os trabalhos no centro da sala, formando uma grande roda ao redor das 'fogueiras de papel'. Façam uma dança de roda cantando 'Cai, Cai, Balão'." 
         }
       ],
-      studentQuestions: [
-        "1. Desenhe no espaço abaixo como ficou a sua fogueira com os palitos.",
-        "2. Desenhe um lindo varal cheio de bandeirinhas no espaço abaixo:",
-        "3. O que usamos hoje para fazer a lenha da nossa fogueira?",
-        "4. Qual comida típica de Festa Junina você acha mais gostosa?",
-        "5. Desenhe você e seus amigos dançando quadrilha."
-      ],
-      illustrationPrompts: [
-        "a cute bonfire made of popsicle sticks with fire flames",
-        "a beautiful clothesline with colorful festival flags hanging in the sky",
-        "",
-        "",
-        "happy children wearing traditional country festival costumes dancing together in a circle"
-      ]
+      studentQuestions,
+      illustrationPrompts
     };
   } else {
     // Mock Genérico
+    const studentQuestions = [
+      `1. O que você mais gostou de aprender sobre ${theme || 'o nosso tema'} hoje?`,
+      "2. Escreva três palavras que comecem com a primeira letra do seu nome.",
+      "3. Quantos materiais diferentes você usou durante a atividade? Escreva o número.",
+      "4. Quais foram as cores principais que você usou ou viu hoje?",
+      "5. Escreva uma frase contando o que você aprendeu hoje."
+    ];
+    const illustrationPrompts = ["", "", "", "", ""];
+
+    if (hasPintura) {
+      studentQuestions[1] = "2. Pinte ou desenhe no espaço abaixo o que você criou.";
+      studentQuestions[4] = "5. Desenhe livremente algo que você quer mostrar para os seus pais.";
+      illustrationPrompts[1] = "creative kids art project and toys";
+      illustrationPrompts[4] = "happy child showing a drawing to smiling parents";
+    }
+
     return {
       title: `Atividade Prática: ${typesString} com ${theme || 'Criatividade'}`,
       ageRange: ageGroup,
@@ -197,20 +222,8 @@ function getMockResponse(theme: string, typesString: string, ageGroup: string, d
           content: "Peça que deixem os materiais e sentem-se novamente em roda para mostrar o que fizeram." 
         }
       ],
-      studentQuestions: [
-        `1. O que você mais gostou de aprender sobre ${theme || 'o nosso tema'} hoje?`,
-        "2. Pinte ou desenhe no espaço abaixo o que você criou.",
-        "3. Quantos materiais diferentes você usou durante a atividade? Escreva o número.",
-        "4. Quais foram as cores principais que você usou ou viu hoje?",
-        "5. Desenhe livremente algo que você quer mostrar para os seus pais."
-      ],
-      illustrationPrompts: [
-        "",
-        "creative kids art project and toys",
-        "",
-        "",
-        "happy child showing a drawing to smiling parents"
-      ]
+      studentQuestions,
+      illustrationPrompts
     };
   }
 }
